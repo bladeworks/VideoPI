@@ -107,14 +107,14 @@ class WebParser:
         return "playlist.m3u"
 
 
-class QQWebParser(WebParser):
+class QQWebParserMP4(WebParser):
     qq_vid_pattern = re.compile('vid:"(?P<vid>\w+)"')
     qq_title_pattern = re.compile('title:"(?P<title>.+)"')
     qq_duration_pattern = re.compile('duration:"(?P<duration>\d+)"')
     qq_typeid_pattern = re.compile('typeid:(?P<typeid>\d)')
 
     def __init__(self, url, format):
-        WebParser.__init__(self, "qq", url, format)
+        WebParser.__init__(self, "qqmp4", url, format)
 
     def parse(self):
         if self.url.startswith('http://v.qq.com/cover'):
@@ -127,9 +127,6 @@ class QQWebParser(WebParser):
             return video
         else:
             return self.parseWeb()
-
-    def getVideoUrl(self, **args):
-        return "http://vsrc.store.qq.com/%s.flv" % args['vid']
 
     def parseVideo(self):
         print "parseVideo", self.url
@@ -153,10 +150,13 @@ class QQWebParser(WebParser):
                     'role="search"><input type="hidden" name="url" value="http://v.qq.com/search.html">')
 
 
-class QQWebParserMP4(QQWebParser):
+class QQWebParser(QQWebParserMP4):
 
     def __init__(self, url, format):
-        WebParser.__init__(self, 'qqmp4', url, format)
+        WebParser.__init__(self, 'qq', url, format)
+
+    def getVideoUrl(self, **args):
+        return "http://vsrc.store.qq.com/%s.flv" % args['vid']
 
 
 class YoukuWebParser(WebParser):

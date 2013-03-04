@@ -8,7 +8,7 @@
 	<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 	<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
 	<meta charset=utf-8 />
-	<title>Raspberry Controller</title>
+	<title>Raspberry Remote Control</title>
 	</head>
 	<body>
 	  <div id="main" data-role="page" data-theme="b" data-content-theme="b">
@@ -17,17 +17,27 @@
 				refreshHistory();
 			});
 	  	</script>
-	  	<div data-role="popup" id="message"></div>
+	  	<div data-role="popup" id="message" class="ui-content" data-theme="e"></div>
 	  	<div data-role="header">
-	  		<a href="/" data-icon="home" data-ajax="false">Home</a>
-	  		<h1>Controller</h1>
+	  		<a href="/" data-icon="home" data-ajax="false" data-iconpos="notext">Home</a>
+	  		<h1>Remote Control</h1>
 	  	</div>
 	  	<div data-role="content">
-  			<div data-role="controlgroup" data-type="horizontal">
-	  			<a href="#" onclick="control('pause');return false" data-role="button" data-icon="custom" id="pause" data-theme="a" data-iconpos="notext">Play/Pause</a>
-	  			<a href="#" onclick="control('stop');return false" data-role="button" data-icon="custom" id="stop" data-theme="a" data-iconpos="notext">Stop</a>
-	  			<a href="#" onclick="control('voldown');return false" data-role="button" data-icon="custom" id="voldown" data-theme="a" data-iconpos="notext">Voldown</a>
-	  			<a href="#" onclick="control('volup');return false" data-role="button" data-icon="custom" id="volup" data-theme="a" data-iconpos="notext">Volup</a>
+  			<div data-role="navbar">
+  				<ul>
+  					<li>
+			  			<a href="#" onclick="control('pause');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/pause.png" height="26"/></a>
+			  		</li>
+			  		<li>
+			  			<a href="#" onclick="control('stop');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/stop.png" height="26"/></a>
+			  		</li>
+			  		<li>
+			  			<a href="#" onclick="control('voldown');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/voldown.png" height="26"/></a>
+			  		</li>
+			  		<li>
+			  			<a href="#" onclick="control('volup');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/volup.png" height="26"/></a>
+			  		</li>
+			  	</ul>
 	  		</div>
 	  		<div data-role="collapsible" data-collapsed="false" data-theme="b" data-content-theme="b">
 	  			<h3>Now Playing</h3>
@@ -43,7 +53,7 @@
 		  			%end
 	  			</div>
 	  			%end
-	  			<div>
+	  			<div class='well'>
 	  				%setdefault('title', 'N/A')
 	  				%setdefault('duration', 'N/A')
 	  				<p>Title: {{title}}</p>

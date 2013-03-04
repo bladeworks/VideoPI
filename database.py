@@ -59,5 +59,5 @@ def db_delete(id):
             # Delete all
             con.execute("DELETE FROM media")
         else:
-            con.execute("DELETE FROM media WHERE id = ?", id)
+            con.execute("DELETE FROM media WHERE id = ?", [id])
         con.commit()

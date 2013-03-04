@@ -32,4 +32,8 @@ function clearHistory() {
 function showMessage(message) {
 	$("#message").html(message);
 	$("#message").popup('open');
+	setTimeout(function() {
+		$("#message").popup('close');
+		$(".ctlbtn").removeClass('ui-btn-active');
+	}, 1500);
 }

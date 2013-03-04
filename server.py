@@ -4,7 +4,7 @@ from bottle import route, run, template, request, static_file, post, get, redire
 from database import *
 from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser
 import subprocess
-import threading
+import platform
 
 websites = {
     "qq": {
@@ -26,20 +26,41 @@ websites = {
 
 current_website = None
 currentVideo = None
+currentPlatform = platform.system()
+currentPlayerApp = None
 
 player = None
 actionToKey = {
     'pause': 'p',
+    'stop': 'q',
     'volup': '+',
     'voldown': '-',
-    'forward': '\x1B[C',
-    'backward': '\x1B[D'
 }
-lock = threading.RLock()
+
+actionToKeyMac = {
+    'MPlayerX':
+    {
+        'pause': '49',
+        'stop': '12 using command down',
+        'volup': '24',
+        'voldown': '27',
+        'fullscreen': '3',
+    },
+    'VLC':
+    {
+        'pause': '49',
+        'stop': '12 using command down',
+        'volup': '126 using command down',
+        'voldown': '125 using command down',
+        'fullscreen': '3 using command down',
+    }
+}
 
 
 def isProcessAlive(process):
+    print "pid =", process.pid
     if process:
+        print "process.poll() =", process.poll()
         if process.poll() is None:
             print "Process is alive"
             return True
@@ -48,36 +69,68 @@ def isProcessAlive(process):
 
 
 def play_url():
-    global player, currentVideo
+    global player, currentVideo, currentPlayerApp
     if currentVideo.realUrl == 'playlist.m3u':
         print "play playlist.m3u"
         db_writeHistory(currentVideo)
-        player = subprocess.Popen(["/Applications/VLC.app/Contents/MacOS/VLC",
-                                  currentVideo.realUrl],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if currentPlatform == 'Darwin':
+            currentPlayerApp = 'VLC'
+            player = subprocess.Popen(["/Applications/VLC.app/Contents/MacOS/VLC",
+                                      currentVideo.realUrl, '--fullscreen'],
+                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            player = subprocess.Popen(["omxplayer", currentVideo.realUrl],
+                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        with lock:
-            if player and isProcessAlive(player):
-                print "teminate the process"
-                player.terminate()
-                player = None
-            # player = subprocess.Popen(["vi", "omxplayer", url], \
-            #    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            db_writeHistory(currentVideo)
-            print "Finish write history"
-            # player = subprocess.Popen(["open", "-a", "/Applications/MPlayerX.app", "--args",
-                # "-url", url, "-StartByFullScreen", "YES"], \
+        if player and isProcessAlive(player):
+            print "teminate the process"
+            player.terminate()
+            player = None
+        # player = subprocess.Popen(["vi", "omxplayer", url], \
+        #    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        db_writeHistory(currentVideo)
+        print "Finish write history"
+        if currentPlatform == 'Darwin':
+            currentPlayerApp = 'MPlayerX'
             player = subprocess.Popen(["/Applications/MPlayerX.app/Contents/MacOS/MPlayerX", '-url',
                                       currentVideo.realUrl, "-StartByFullScreen", "YES"],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            player = subprocess.Popen(["omxplayer", currentVideo.realUrl],
+                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if currentPlatform == 'Darwin':
+        # Try to send it to the second screen
+        command = ['osascript',
+                   '-e', '"tell application \\"%s\\""' % currentPlayerApp,
+                   '-e', '"set position of window 1 to {1900, 30}"',
+                   '-e', '"end tell"']
+        subprocess.call(' '.join(command), shell=True)
     return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
                     websites=websites, currentVideo=currentVideo)
+
+
+def sendKeyForMac(keyString):
+    command = ['osascript',
+               '-e', """ "tell application \\"%s\\"" """ % currentPlayerApp,
+               '-e', '"activate"',
+               '-e', """ "tell application \\"System Events\\" to tell process \\"%s\\" to key code %s" """
+               % (currentPlayerApp, keyString),
+               '-e', '"end tell"']
+    p = subprocess.Popen(' '.join(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    out, err = p.communicate()
+    print 'out =', out
+    print 'err =', err
+    print 'returnCode =', p.returncode
 
 
 @route('/')
 def index():
     global title, duration_str
-    return template('index', websites=websites)
+    if currentVideo:
+        return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
+                        websites=websites, currentVideo=currentVideo)
+    else:
+        return template('index', websites=websites)
 
 
 @route('/play')
@@ -97,17 +150,19 @@ def control(action):
     global player
     feedback = ""
     if player and isProcessAlive(player):
-        if action == 'stop':
-            player.stdin.write("q")
-            player = None
+        if action in actionToKey:
+            print "Write:", actionToKeyMac[currentPlayerApp][action]
+            if currentPlatform == 'Darwin':
+                sendKeyForMac(actionToKeyMac[currentPlayerApp][action])
+            else:
+                player.stdin.write(actionToKey[action])
+            if action == "stop":
+                player = None
             feedback = "OK"
         else:
-            if action in actionToKey:
-                print "Write:", actionToKey[action]
-                player.stdin.write(actionToKey[action])
-                feedback = "OK"
-            else:
-                feedback = "Unknow action: " + action
+            feedback = "Unknow action: " + action
+    else:
+        feedback = "Sorry but I can't find any player running."
     return feedback
 
 
@@ -122,7 +177,8 @@ def history():
                                 <h3>%s</h3>
                                 <p>总共%s</p>
                             </a>
-                            <a href="#" onclick="deleteHistory('%s');return false" data-role="button" data-icon="delete"></a>
+                            <a href="#" onclick="deleteHistory('%s');return false" \
+                            data-role="button" data-icon="delete"></a>
                         </li>
                         """ % (video.dbid, video.title, video.durationToStr(), video.dbid)
     return responseString
@@ -136,6 +192,11 @@ def delete(id):
 @post('/clear')
 def clear():
     db_delete(-1)
+
+
+@get('/favicon.ico')
+def favicon():
+    return static_file('favicon.ico', '.')
 
 
 @route('/forward')
