@@ -3,6 +3,7 @@
 from webparser import Video
 import sqlite3
 import time
+import logging
 #CREATE TABLE media(id INTEGER PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL, last_play_date INTEGER, last_play_pos INTEGER, duration INTEGER, site TEXT)
 
 
@@ -22,7 +23,7 @@ def db_getHistory():
 
 def db_writeHistory(video, last_play_pos=0, update_pos=False):
     con = sqlite3.connect('media.db')
-    print "Write", video
+    logging.debug("Write: %s", video)
     with con:
         if video.dbid:
             if update_pos:
@@ -52,7 +53,7 @@ def db_getById(id):
 
 
 def db_delete(id):
-    print "delete", id
+    logging.debug("Delete %s", id)
     con = sqlite3.connect('media.db')
     with con:
         if id == -1:

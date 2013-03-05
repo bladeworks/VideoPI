@@ -10,6 +10,10 @@ function control(action) {
 	$.post(url, function(data) {
 		if (data !== "") {
 			if (data === "OK") {
+				if (action === "stop") {
+					$('#title').html('N/A');
+					$('#duration').html('N/A');
+				}
 				showMessage("The command has been sent to the server");
 			} else {
 				showMessage(data);

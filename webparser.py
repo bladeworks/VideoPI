@@ -4,6 +4,7 @@ import abc
 import re
 import urllib2
 import json
+import logging
 
 format2keyword = {
     1: "",
@@ -19,7 +20,8 @@ class Video:
         3: "超清"
     }
 
-    def __init__(self, title, url, realUrl, duration, site, typeid=1, dbid=None, availableFormat=[], currentFormat=None):
+    def __init__(self, title, url, realUrl, duration, site, typeid=1,
+                 dbid=None, availableFormat=[], currentFormat=None):
         self.title = str(title)
         self.url = url
         self.realUrl = realUrl
@@ -42,8 +44,10 @@ class Video:
         return duration_str
 
     def __unicode__(self):
-        return "url=%s, realurl=%s, duration=%s, site=%s, typeid=%s, dbid=%s, availableFormat=%s, currentFormat=%s" % \
-            (self.url, self.realUrl, self.duration, self.site, self.typeid, self.dbid, self.availableFormat, self.currentFormat)
+        return "url=%s, realurl=%s, duration=%s, site=%s, typeid=%s, \
+               dbid=%s, availableFormat=%s, currentFormat=%s" % \
+               (self.url, self.realUrl, self.duration, self.site, self.typeid,
+               self.dbid, self.availableFormat, self.currentFormat)
 
 
 class WebParser:
@@ -129,18 +133,21 @@ class QQWebParserMP4(WebParser):
             return self.parseWeb()
 
     def parseVideo(self):
-        print "parseVideo", self.url
+        logging.info("parseVideo %s", self.url)
         responseString = self.fetchWeb(self.url)
         vid = self.parseField(self.qq_vid_pattern, responseString, "vid")
         title = self.parseField(self.qq_title_pattern, responseString, "title")
         duration = self.parseField(self.qq_duration_pattern, responseString, "duration")
         typeid = self.parseField(self.qq_typeid_pattern, responseString, "typeid")
         realUrl = self.getVideoUrl(vid=vid)
-        return Video(title, self.url, realUrl, duration, self.site, int(typeid), availableFormat=self.availableFormat, currentFormat=self.format)
+        return Video(title, self.url, realUrl, duration, self.site, int(typeid),
+                     availableFormat=self.availableFormat, currentFormat=self.format)
 
     def parseWeb(self):
-        print "paseWeb", self.url
-        return self.replaceQQ(self.fetchWeb(self.url))
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
+        return self.replaceQQ(responseString)
 
     def replaceQQ(self, responseString):
         return responseString.replace(' href="/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
@@ -173,7 +180,7 @@ class YoukuWebParser(WebParser):
             return self.parseWeb()
 
     def parseVideo(self):
-        print 'parseVideo =', self.url
+        logging.info("parseVideo %s", self.url)
         vid = self.parseField(self.youku_vid_pattern, self.url, "vid")
         getVideoInfoUrl = "http://v.youku.com/player/getPlayList/VideoIDS/%s" % vid
         responseString = self.fetchWeb(getVideoInfoUrl)
@@ -181,11 +188,13 @@ class YoukuWebParser(WebParser):
         realUrl = self.getVideoUrl()
         title = d['data'][0]['title']
         duration = d['data'][0]['seconds']
-        return Video(title.encode('utf8'), self.url, realUrl, duration, self.site, availableFormat=self.availableFormat, currentFormat=self.format)
+        return Video(title.encode('utf8'), self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format)
 
     def parseWeb(self):
-        print "parseWeb", self.url
+        logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
         return self.replaceYouku(responseString)
 
     def replaceYouku(self, responseString):

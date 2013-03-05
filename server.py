@@ -3,6 +3,7 @@
 from bottle import route, run, template, request, static_file, post, get, redirect
 from database import *
 from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser
+from string import Template
 import subprocess
 import platform
 
@@ -56,23 +57,28 @@ actionToKeyMac = {
     }
 }
 
+import logging
+logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
+                    filename='app.log', level=logging.DEBUG)
+
 
 def isProcessAlive(process):
-    print "pid =", process.pid
     if process:
-        print "process.poll() =", process.poll()
+        logging.debug("pid = %s", process.pid)
         if process.poll() is None:
-            print "Process is alive"
             return True
-    print "Process is not alive"
     return False
 
 
 def play_url():
     global player, currentVideo, currentPlayerApp
+    db_writeHistory(currentVideo)
+    if player and isProcessAlive(player):
+        logging.warn("Terminate the previous player")
+        player.terminate()
+        player = None
+    logging.info("Playing %s", currentVideo.realUrl)
     if currentVideo.realUrl == 'playlist.m3u':
-        print "play playlist.m3u"
-        db_writeHistory(currentVideo)
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'VLC'
             player = subprocess.Popen(["/Applications/VLC.app/Contents/MacOS/VLC",
@@ -82,14 +88,6 @@ def play_url():
             player = subprocess.Popen(["omxplayer", currentVideo.realUrl],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        if player and isProcessAlive(player):
-            print "teminate the process"
-            player.terminate()
-            player = None
-        # player = subprocess.Popen(["vi", "omxplayer", url], \
-        #    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        db_writeHistory(currentVideo)
-        print "Finish write history"
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'MPlayerX'
             player = subprocess.Popen(["/Applications/MPlayerX.app/Contents/MacOS/MPlayerX", '-url',
@@ -100,32 +98,44 @@ def play_url():
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if currentPlatform == 'Darwin':
         # Try to send it to the second screen
-        command = ['osascript',
-                   '-e', '"tell application \\"%s\\""' % currentPlayerApp,
-                   '-e', '"set position of window 1 to {1900, 30}"',
-                   '-e', '"end tell"']
-        subprocess.call(' '.join(command), shell=True)
+        templateStr = """osascript\
+ -e "delay 3"\
+ -e "tell application \\"$currentPlayerApp\\""\
+ -e "set position of window 1 to {1900, 30}"\
+ -e "end tell" """
+        executeCmdForMac(templateStr)
     return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
                     websites=websites, currentVideo=currentVideo)
 
 
 def sendKeyForMac(keyString):
-    command = ['osascript',
-               '-e', """ "tell application \\"%s\\"" """ % currentPlayerApp,
-               '-e', '"activate"',
-               '-e', """ "tell application \\"System Events\\" to tell process \\"%s\\" to key code %s" """
-               % (currentPlayerApp, keyString),
-               '-e', '"end tell"']
-    p = subprocess.Popen(' '.join(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    templateStr = """osascript\
+ -e "tell application \\"$currentPlayerApp\\""\
+ -e "activate"\
+ -e "tell application \\"System Events\\" to tell process \\"$currentPlayerApp\\" to key code $keycode"\
+ -e "end tell" """
+    executeCmdForMac(templateStr, params={"keycode": keyString})
+
+
+def executeCmdForMac(templateStr, params={}):
+    s = Template(templateStr)
+    p = {"currentPlayerApp": currentPlayerApp}
+    if params:
+        for k, v in params.iteritems():
+            p[k] = v
+    cmd = s.substitute(p)
+    logging.info("Execuing command: %s", cmd)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     out, err = p.communicate()
-    print 'out =', out
-    print 'err =', err
-    print 'returnCode =', p.returncode
+    logging.debug("out = %s\nerr = %s\nreturnCode = %s", out, err, p.returncode)
 
 
 @route('/')
 def index():
     global title, duration_str
+    if not isProcessAlive(player):
+        global currentVideo
+        currentVideo = None
     if currentVideo:
         return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
                         websites=websites, currentVideo=currentVideo)
@@ -147,17 +157,18 @@ def static(filename):
 
 @post('/control/<action>')
 def control(action):
-    global player
+    global player, currentVideo
     feedback = ""
     if player and isProcessAlive(player):
         if action in actionToKey:
-            print "Write:", actionToKeyMac[currentPlayerApp][action]
+            logging.info("Send key code: %s", actionToKeyMac[currentPlayerApp][action])
             if currentPlatform == 'Darwin':
                 sendKeyForMac(actionToKeyMac[currentPlayerApp][action])
             else:
                 player.stdin.write(actionToKey[action])
             if action == "stop":
                 player = None
+                currentVideo = None
             feedback = "OK"
         else:
             feedback = "Unknow action: " + action
@@ -175,12 +186,13 @@ def history():
                         <li>
                             <a href="/play?id=%s" class="ui-link-inherit" data-ajax="false">
                                 <h3>%s</h3>
-                                <p>总共%s</p>
+                                <p>总共%s(%s)</p>
                             </a>
                             <a href="#" onclick="deleteHistory('%s');return false" \
                             data-role="button" data-icon="delete"></a>
                         </li>
-                        """ % (video.dbid, video.title, video.durationToStr(), video.dbid)
+                        """ % (video.dbid, video.title, video.durationToStr(),
+                               websites[video.site]['title'], video.dbid)
     return responseString
 
 
@@ -207,10 +219,9 @@ def forward():
     if 'site' in request.query:
         global current_website
         current_website = request.query.site
-        print 'set current_website to ' + current_website
     if 'format' in request.query:
         format = int(request.query.format)
-    print "forward to", url
+        logging.info("Forwarding to %s", url)
     parser = websites[current_website]['parser'](url, format)
     parseResult = parser.parse()
     if isinstance(parseResult, Video):

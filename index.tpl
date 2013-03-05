@@ -56,8 +56,8 @@
 	  			<div class='well'>
 	  				%setdefault('title', 'N/A')
 	  				%setdefault('duration', 'N/A')
-	  				<p>Title: {{title}}</p>
-	  				<p>Duration: {{duration}}</p>
+	  				<p>Title: <span id="title">{{title}}</span></p>
+	  				<p>Duration: <span id="duration">{{duration}}</span></p>
 	  			</div>
 	  		</div>
 	  		<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="b">
