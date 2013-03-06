@@ -5,6 +5,7 @@ import re
 import urllib2
 import json
 import logging
+import subprocess
 
 format2keyword = {
     1: "",
@@ -201,3 +202,45 @@ class YoukuWebParser(WebParser):
         return responseString.replace(' href="http://static', ' nohref="http://static').\
             replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
             replace(' nohref="http://static', ' href="http://static')
+
+
+class YoutubeWebParser(WebParser):
+
+    youtube_title_pattern = re.compile('"title": "(?P<title>\w+)"')
+    youtube_duration_pattern = re.compile('"length_seconds": (?P<duration>\d+)')
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, 'youtube', url, format)
+
+    def getVideoUrl(self, **args):
+        realUrl = subprocess.check_output(['youtube-dl', '-g', self.url])
+        return realUrl
+
+    def parse(self):
+        if 'watch?v=' in self.url:
+            return self.parseVideo()
+        else:
+            return self.parseWeb()
+
+    def parseVideo(self):
+        logging.info("parseVideo %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        title = self.parseField(self.youtube_title_pattern, responseString, 'title')
+        duration = self.parseField(self.youtube_duration_pattern, responseString, 'duration')
+        realUrl = self.getVideoUrl()
+        return Video(title.encode('utf8'), self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        print responseString
+        logging.debug("Finish fetch web")
+        return self.replaceYoutube(responseString)
+
+    def replaceYoutube(self, responseString):
+        return responseString.replace(' href="http://s.ytimg.com/', ' nohref="http://s.ytimg.com/').\
+            replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
+            replace('action="/results"', 'action="/forward?site=%s&url=http://www.youtube.com/results' % self.site).\
+            replace(' href="/', ' href="/forward?site=%s&url=http://www.youtube.com/' % self.site).\
+            replace(' nohref="http://s.ytimg.com/', ' href="http://s.ytimg.com/')

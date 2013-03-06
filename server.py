@@ -2,26 +2,43 @@
 # -*- coding: utf8 -*-
 from bottle import route, run, template, request, static_file, post, get, redirect
 from database import *
-from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser
+from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser, YoutubeWebParser
 from string import Template
 import subprocess
 import platform
+import sys
+import time
+from threading import Thread
+from Queue import Queue
 
 websites = {
     "qq": {
         "title": "腾讯视频(flv)",
         "url": "http://v.qq.com",
-        "parser": QQWebParser
+        "parser": QQWebParser,
+        "icon": "http://v.qq.com/favicon.ico",
+        "info": "flv格式，不分段，但不能选择清晰度。"
     },
     "qqmp4": {
         "title": "腾讯视频(mp4)",
         "url": "http://v.qq.com",
-        "parser": QQWebParserMP4
+        "parser": QQWebParserMP4,
+        "icon": "http://v.qq.com/favicon.ico",
+        "info": "mp4格式，分段，可选择清晰度。"
     },
     "youku": {
         "title": "优酷视频",
         "url": "http://www.youku.com",
-        "parser": YoukuWebParser
+        "parser": YoukuWebParser,
+        "icon": "http://www.youku.com/favicon.ico",
+        "info": "mp4格式，分段，可选择清晰度。"
+    },
+    "youtube": {
+        "title": "Youtube",
+        "url": "http://www.youtube.com",
+        "parser": YoutubeWebParser,
+        "icon": "http://www.youtube.com/favicon.ico",
+        "info": "mp4格式，分段，可选择清晰度。"
     },
 }
 
@@ -31,12 +48,44 @@ currentPlatform = platform.system()
 currentPlayerApp = None
 
 player = None
+playThread = None
+playQueue = Queue()
+
 actionToKey = {
     'pause': 'p',
     'stop': 'q',
     'volup': '+',
     'voldown': '-',
+    'f30': '\x1B[D',
+    'b30': '\x1B[C',
+    'f600': '\x1B[A',
+    'b600': '\x1B[B',
+    'showinfo': 'z',
+    'speedup': '1',
+    'speeddown': '2',
+    'togglesub': 's',
 }
+
+actionDesc = [
+    [
+        ('pause', 'Pause'),
+        ('stop', 'Stop'),
+        ('volup', 'Increase Volume'),
+        ('voldown', 'Decrease Volume')
+    ],
+    [
+        ('f30', 'Seek +30'),
+        ('b30', 'Seek -30'),
+        ('f600', 'Seek +600'),
+        ('b600', 'Seek -600')
+    ],
+    [
+        ('showinfo', 'z'),
+        ('speedup', '1'),
+        ('speeddown', '2'),
+        ('togglesub', 's'),
+    ]
+]
 
 actionToKeyMac = {
     'MPlayerX':
@@ -62,16 +111,50 @@ logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
                     filename='app.log', level=logging.DEBUG)
 
 
+def exceptionLogger(type, value, tb):
+    logging.exception("Uncaught exception: %s", value)
+
+
+sys.excephook = exceptionLogger
+
+
 def isProcessAlive(process):
     if process:
-        logging.debug("pid = %s", process.pid)
         if process.poll() is None:
             return True
     return False
 
 
+def clearQueue():
+    global playQueue
+    with playQueue.mutex:
+        playQueue.queue.clear()
+
+
+def fillQueue(url=None):
+    global playQueue
+    if url:
+        playQueue.put(url)
+    else:
+        with open('playlist.m3u', 'r') as f:
+            for v in [v.strip() for v in f.readlines() if v.startswith('http')]:
+                playQueue.put(v)
+
+
+def play_list():
+    global player, playQueue
+    while True:
+        v = playQueue.get()
+        logging.info("Play %s", v)
+        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while isProcessAlive(player):
+            time.sleep(1)
+
+
 def play_url():
-    global player, currentVideo, currentPlayerApp
+    global player, currentVideo, currentPlayerApp, playQueue
+    clearQueue()
     db_writeHistory(currentVideo)
     if player and isProcessAlive(player):
         logging.warn("Terminate the previous player")
@@ -85,8 +168,13 @@ def play_url():
                                       currentVideo.realUrl, '--fullscreen'],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            player = subprocess.Popen(["omxplayer", currentVideo.realUrl],
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Because omxplayer doesn't support list we have to play one by one.
+            global playThread
+            if not playThread:
+                logging.debug("New a thred to play the list.")
+                playThread = Thread(target=play_list)
+                playThread.start()
+            fillQueue()
     else:
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'MPlayerX'
@@ -94,8 +182,7 @@ def play_url():
                                       currentVideo.realUrl, "-StartByFullScreen", "YES"],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            player = subprocess.Popen(["omxplayer", currentVideo.realUrl],
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            fillQueue(currentVideo.realUrl)
     if currentPlatform == 'Darwin':
         # Try to send it to the second screen
         templateStr = """osascript\
@@ -105,7 +192,7 @@ def play_url():
  -e "end tell" """
         executeCmdForMac(templateStr)
     return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                    websites=websites, currentVideo=currentVideo)
+                    websites=websites, currentVideo=currentVideo, actionDesc=actionDesc)
 
 
 def sendKeyForMac(keyString):
@@ -138,9 +225,9 @@ def index():
         currentVideo = None
     if currentVideo:
         return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                        websites=websites, currentVideo=currentVideo)
+                        websites=websites, currentVideo=currentVideo, actionDesc=actionDesc)
     else:
-        return template('index', websites=websites)
+        return template('index', websites=websites, actionDesc=actionDesc)
 
 
 @route('/play')
@@ -160,18 +247,22 @@ def control(action):
     global player, currentVideo
     feedback = ""
     if player and isProcessAlive(player):
-        if action in actionToKey:
-            logging.info("Send key code: %s", actionToKeyMac[currentPlayerApp][action])
+        if (currentPlatform != 'Darwin' and action in actionToKey) or\
+                (currentPlatform == 'Darwin' and action in actionToKeyMac[currentPlayerApp]):
+            if action == "stop":
+                clearQueue()
             if currentPlatform == 'Darwin':
+                logging.info("Send key code: %s", actionToKeyMac[currentPlayerApp][action])
                 sendKeyForMac(actionToKeyMac[currentPlayerApp][action])
             else:
+                logging.info("Send key code: %s", actionToKey[action])
                 player.stdin.write(actionToKey[action])
             if action == "stop":
                 player = None
                 currentVideo = None
             feedback = "OK"
         else:
-            feedback = "Unknow action: " + action
+            feedback = "Not implemented action: " + action
     else:
         feedback = "Sorry but I can't find any player running."
     return feedback
@@ -213,11 +304,13 @@ def favicon():
 
 @route('/forward')
 def forward():
-    global vid, title, duration, duration_str
+    global vid, title, duration, duration_str, current_website
     format = None
     url = request.query.url
+    if current_website == 'youtube' and 'search_query' in request.query:
+        url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
+        print url
     if 'site' in request.query:
-        global current_website
         current_website = request.query.site
     if 'format' in request.query:
         format = int(request.query.format)
@@ -233,4 +326,7 @@ def forward():
     else:
         return parseResult
 
-run(host='0.0.0.0', port=8000, reloader=True)
+if currentPlatform == 'Darwin':
+    run(host='0.0.0.0', port=8000, reloader=True)
+else:
+    run(host='0.0.0.0', port=80, reloader=True)

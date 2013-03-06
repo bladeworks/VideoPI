@@ -47,7 +47,7 @@ def db_getById(id):
     con.row_factory = sqlite3.Row
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM media WHERE id = ?", id)
+        cur.execute("SELECT * FROM media WHERE id = ?", [id])
         data = cur.fetchone()
         return Video(str(data['title']), str(data['url']), '', data['duration'], data['site'], dbid=data['id'])
 

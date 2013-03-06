@@ -13,6 +13,7 @@ function control(action) {
 				if (action === "stop") {
 					$('#title').html('N/A');
 					$('#duration').html('N/A');
+					$('#formatSelect').html('');
 				}
 				showMessage("The command has been sent to the server");
 			} else {

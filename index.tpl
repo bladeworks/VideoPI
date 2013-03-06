@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 	<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="http://code.jquery.com/mobile/latest/jquery.mobile.css" rel="stylesheet" type="text/css" />
-	<link href="/static/css/videopi.css" rel="stylesheet" type="text/css" />
-	<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
-	<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
-	<meta charset=utf-8 />
-	<title>Raspberry Remote Control</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link href="http://code.jquery.com/mobile/latest/jquery.mobile.css" rel="stylesheet" type="text/css" />
+		<link href="/static/css/videopi.css" rel="stylesheet" type="text/css" />
+		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
+		<meta charset=utf-8 />
+		<title>Raspberry Remote Control</title>
 	</head>
 	<body>
 	  <div id="main" data-role="page" data-theme="b" data-content-theme="b">
@@ -24,26 +24,23 @@
 	  	</div>
 	  	<div data-role="content">
   			<div data-role="navbar">
-  				<ul>
-  					<li>
-			  			<a href="#" onclick="control('pause');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/pause.png" height="26"/></a>
-			  		</li>
-			  		<li>
-			  			<a href="#" onclick="control('stop');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/stop.png" height="26"/></a>
-			  		</li>
-			  		<li>
-			  			<a href="#" onclick="control('voldown');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/voldown.png" height="26"/></a>
-			  		</li>
-			  		<li>
-			  			<a href="#" onclick="control('volup');return false" data-theme="c" data-role="button" class="ctlbtn"><img src="/static/img/volup.png" height="26"/></a>
-			  		</li>
-			  	</ul>
+  				%for group in actionDesc:
+  					<ul>
+  						%for action in group:
+  							<li>
+  								<a href="#" onclick="control('{{action[0]}}');return false" data-theme="c" data-role="button" class="ctlbtn">
+  									<img src="/static/img/{{action[0]}}.png" height="26" alt="{{action[1]}}"/>
+  								</a>
+  							</li>
+  						%end for
+  					</ul>
+  				%end for
 	  		</div>
 	  		<div data-role="collapsible" data-collapsed="false" data-theme="b" data-content-theme="b">
 	  			<h3>Now Playing</h3>
 	  			%setdefault('currentVideo', None)
 	  			%if currentVideo and currentVideo.availableFormat:
-	  			<div data-role="controlgroup" data-type="horizontal">
+	  			<div data-role="controlgroup" data-type="horizontal" id="formatSelect">
 		  			%for f in currentVideo.availableFormat:
 		  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.url}}&format={{f}}" data-role="button" class="
 		  			%if currentVideo.currentFormat == f: 
@@ -60,13 +57,21 @@
 	  				<p>Duration: <span id="duration">{{duration}}</span></p>
 	  			</div>
 	  		</div>
-	  		<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="b">
+	  		<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="c">
 	  			<h3>Browse</h3>
-	  			<div data-role="controlgroup">
+	  			<ul data-role="listview" data-inset="true" data-theme="c" data-split-icon="info" data-split-theme="e">
 		  			%for site, data in iter(sorted(websites.iteritems())):
-			  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-role="button" data-icon="custom" id="{{site}}" data-theme="c">{{data['title']}}</a>	
+		  			<li>
+			  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
+			  				{{data['title']}}
+			  			</a>	
+			  			<a href="#{{site}}info" data-rel="popup" data-position-to="window" data-transition="pop">Details</a>
+			  		</li>
+			  		<div data-role="popup" id="{{site}}info" class="ui-content" data-theme="e">
+			  			<p>{{data['info']}}</p>
+					</div>	
 		  			%end
-		  		</div>
+		  		</ul>
 	  		</div>
 	  		<div data-role="collapsible" data-collapsed="true" data-theme="d" data-content-theme="d">
 	  			<h3>History</h3>
