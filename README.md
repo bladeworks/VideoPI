@@ -94,6 +94,7 @@ VideoPI是基于bottlepy以及jquerymobile的一个RB的遥控器，可以在电
   ```bash
   cd /root
   git clone https://github.com/bladeworks/VideoPI
+  cd VideoPI
   sh install_service.sh
   chmod +x start.sh
   sync
