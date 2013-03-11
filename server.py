@@ -38,7 +38,7 @@ websites = {
         "url": "http://www.youtube.com",
         "parser": YoutubeWebParser,
         "icon": "http://www.youtube.com/favicon.ico",
-        "info": "mp4格式，分段，可选择清晰度。"
+        "info": "Nothing"
     },
 }
 
@@ -73,18 +73,18 @@ actionDesc = [
         ('volup', 'Increase Volume'),
         ('voldown', 'Decrease Volume')
     ],
-    [
-        ('f30', 'Seek +30'),
-        ('b30', 'Seek -30'),
-        ('f600', 'Seek +600'),
-        ('b600', 'Seek -600')
-    ],
-    [
-        ('showinfo', 'z'),
-        ('speedup', '1'),
-        ('speeddown', '2'),
-        ('togglesub', 's'),
-    ]
+    # [
+    #     ('f30', 'Seek +30'),
+    #     ('b30', 'Seek -30'),
+    #     ('f600', 'Seek +600'),
+    #     ('b600', 'Seek -600')
+    # ],
+    # [
+    #     ('showinfo', 'z'),
+    #     ('speedup', '1'),
+    #     ('speeddown', '2'),
+    #     ('togglesub', 's'),
+    # ]
 ]
 
 actionToKeyMac = {
@@ -131,49 +131,72 @@ def clearQueue():
         playQueue.queue.clear()
 
 
-def fillQueue(url=None):
+def parseM3U():
+    with open('playlist.m3u', 'r') as f:
+        return [v.strip() for v in f.readlines() if v.startswith('http')]
+
+
+def fillQueue(urls=[]):
     global playQueue
-    if url:
-        playQueue.put(url)
+    logging.info("fillQueue: %s", urls)
+    if urls:
+        logging.info("Add item to queue %s", urls)
+        for u in urls:
+            playQueue.put(u)
     else:
-        with open('playlist.m3u', 'r') as f:
-            for v in [v.strip() for v in f.readlines() if v.startswith('http')]:
-                playQueue.put(v)
+        for v in parseM3U():
+            playQueue.put(v)
+    # fill other related videos
+    if currentVideo and currentVideo.nextVideo:
+        logging.debug("Put next: %s", currentVideo.nextVideo)
+        playQueue.put("next:%s" % currentVideo.nextVideo)
 
 
 def play_list():
-    global player, playQueue
+    global player, playQueue, currentVideo
     while True:
         v = playQueue.get()
         logging.info("Play %s", v)
-        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if v.startswith('next:'):
+            _play_url(v.replace('next:', ''))
+        else:
+            player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
+                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
             time.sleep(1)
+            if not currentVideo.paused:
+                currentVideo.progress += 1
 
 
-def play_url():
-    global player, currentVideo, currentPlayerApp, playQueue
-    clearQueue()
-    db_writeHistory(currentVideo)
+def terminatePlayer():
+    global player
     if player and isProcessAlive(player):
         logging.warn("Terminate the previous player")
         player.terminate()
         player = None
+
+
+def play_url():
+    global player, currentVideo, currentPlayerApp, playQueue, paused, progress
+    clearQueue()
+    db_writeHistory(currentVideo)
+    terminatePlayer()
     logging.info("Playing %s", currentVideo.realUrl)
+    if currentPlatform != 'Darwin':
+        global playThread
+        if not playThread:
+            logging.debug("New a thred to play the list.")
+            playThread = Thread(target=play_list)
+            playThread.start()
     if currentVideo.realUrl == 'playlist.m3u':
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'VLC'
             player = subprocess.Popen(["/Applications/VLC.app/Contents/MacOS/VLC",
-                                      currentVideo.realUrl, '--fullscreen'],
+                                      #currentVideo.realUrl, '--fullscreen'],
+                                      currentVideo.realUrl],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             # Because omxplayer doesn't support list we have to play one by one.
-            global playThread
-            if not playThread:
-                logging.debug("New a thred to play the list.")
-                playThread = Thread(target=play_list)
-                playThread.start()
             fillQueue()
     else:
         if currentPlatform == 'Darwin':
@@ -182,7 +205,7 @@ def play_url():
                                       currentVideo.realUrl, "-StartByFullScreen", "YES"],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            fillQueue(currentVideo.realUrl)
+            fillQueue([currentVideo.realUrl])
     if currentPlatform == 'Darwin':
         # Try to send it to the second screen
         templateStr = """osascript\
@@ -192,7 +215,8 @@ def play_url():
  -e "end tell" """
         executeCmdForMac(templateStr)
     return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                    websites=websites, currentVideo=currentVideo, actionDesc=actionDesc)
+                    websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
+                    history=db_getHistory())
 
 
 def sendKeyForMac(keyString):
@@ -217,6 +241,22 @@ def executeCmdForMac(templateStr, params={}):
     logging.debug("out = %s\nerr = %s\nreturnCode = %s", out, err, p.returncode)
 
 
+def _play_url(url, format=None, dbid=None):
+    logging.debug("_play_url %s", url)
+    parser = websites[current_website]['parser'](url, format)
+    parseResult = parser.parse()
+    if isinstance(parseResult, Video):
+        global currentVideo
+        currentVideo = parseResult
+        logging.info('currentVideo = %s', str(currentVideo))
+        if dbid:
+            currentVideo.dbid = dbid
+        return play_url()
+    else:
+        logging.info('No video found, return the web page.')
+        return parseResult
+
+
 @route('/')
 def index():
     global title, duration_str
@@ -225,16 +265,18 @@ def index():
         currentVideo = None
     if currentVideo:
         return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                        websites=websites, currentVideo=currentVideo, actionDesc=actionDesc)
+                        websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
+                        history=db_getHistory())
     else:
-        return template('index', websites=websites, actionDesc=actionDesc)
+        return template('index', websites=websites, actionDesc=actionDesc, history=db_getHistory())
 
 
 @route('/play')
 def history_play():
     global currentVideo
     currentVideo = db_getById(request.query.id)
-    redirect('/forward?site=%s&url=%s&dbid=%s' % (currentVideo.site, currentVideo.url, currentVideo.dbid))
+    redirect('/forward?site=%s&url=%s&dbid=%s' % (currentVideo.site, currentVideo.url,
+             currentVideo.dbid))
 
 
 @route('/static/<filename:path>')
@@ -246,11 +288,11 @@ def static(filename):
 def control(action):
     global player, currentVideo
     feedback = ""
+    if action == "stop":
+        clearQueue()
     if player and isProcessAlive(player):
         if (currentPlatform != 'Darwin' and action in actionToKey) or\
                 (currentPlatform == 'Darwin' and action in actionToKeyMac[currentPlayerApp]):
-            if action == "stop":
-                clearQueue()
             if currentPlatform == 'Darwin':
                 logging.info("Send key code: %s", actionToKeyMac[currentPlayerApp][action])
                 sendKeyForMac(actionToKeyMac[currentPlayerApp][action])
@@ -260,6 +302,8 @@ def control(action):
             if action == "stop":
                 player = None
                 currentVideo = None
+            if action == "pause":
+                currentVideo.paused = (not currentVideo.paused)
             feedback = "OK"
         else:
             feedback = "Not implemented action: " + action
@@ -275,12 +319,11 @@ def history():
     for video in videos:
         responseString += """
                         <li>
-                            <a href="/play?id=%s" class="ui-link-inherit" data-ajax="false">
+                            <a href="/play?id=%s" class="ui-link-inherit">
                                 <h3>%s</h3>
                                 <p>总共%s(%s)</p>
                             </a>
-                            <a href="#" onclick="deleteHistory('%s');return false" \
-                            data-role="button" data-icon="delete"></a>
+                            <a href="#" onclick="deleteHistory('%s');return false"></a>
                         </li>
                         """ % (video.dbid, video.title, video.durationToStr(),
                                websites[video.site]['title'], video.dbid)
@@ -302,29 +345,57 @@ def favicon():
     return static_file('favicon.ico', '.')
 
 
+@get('/progress')
+def get_progress():
+    if currentVideo:
+        return {"title": currentVideo.title, "progress": str(currentVideo.progress), "duration": currentVideo.durationToStr()}
+    else:
+        return {"title": "N/A", "progress": "0", "duration": "N/A"}
+
+
+@post('/goto/<where>')
+def goto(where):
+    logging.info("Goto %s", where)
+    new_progress, c_idx = currentVideo.getSectionsFrom(int(where))
+    logging.debug("new_progress = %s, c_idx = %s", new_progress, c_idx)
+    if new_progress is not None and c_idx is not None:
+        if c_idx != currentVideo.getCurrentIdx():
+            currentVideo.progress = new_progress
+            clearQueue()
+            fillQueue(parseM3U()[c_idx:])
+            terminatePlayer()
+            return "OK"
+
+
 @route('/forward')
 def forward():
     global vid, title, duration, duration_str, current_website
     format = None
     url = request.query.url
+    dbid = None
     if current_website == 'youtube' and 'search_query' in request.query:
         url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
-        print url
+        logging.debug("The url for youtube search is: %s", url)
     if 'site' in request.query:
         current_website = request.query.site
     if 'format' in request.query:
         format = int(request.query.format)
         logging.info("Forwarding to %s", url)
-    parser = websites[current_website]['parser'](url, format)
-    parseResult = parser.parse()
-    if isinstance(parseResult, Video):
-        global currentVideo
-        currentVideo = parseResult
-        if 'dbid' in request.query:
-            currentVideo.dbid = request.query.dbid
-        return play_url()
-    else:
-        return parseResult
+    if 'dbid' in request.query:
+        dbid = request.query.dbid
+    return _play_url(url, format, dbid)
+
+
+@route('/shutdown')
+def shutdown():
+    subprocess.call(['sync'])
+    subprocess.call(['poweroff'])
+
+
+@route('/restart')
+def restart():
+    subprocess.call(['sync'])
+    subprocess.call(['reboot'])
 
 if currentPlatform == 'Darwin':
     run(host='0.0.0.0', port=8000, reloader=True)

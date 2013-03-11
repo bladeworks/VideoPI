@@ -1,5 +1,4 @@
 function refreshHistory() {
-	console.log("Refresh history");
 	$.get('/history', function(data) {
 		$('#historyListView').html(data);
 		$('#historyListView').listview('refresh');
@@ -14,8 +13,9 @@ function control(action) {
 					$('#title').html('N/A');
 					$('#duration').html('N/A');
 					$('#formatSelect').html('');
+					$('#relatedVideo').html('');
 				}
-				showMessage("The command has been sent to the server");
+				showMessage("");
 			} else {
 				showMessage(data);
 			}
@@ -34,11 +34,39 @@ function clearHistory() {
 		refreshHistory();
 	});
 }
-function showMessage(message) {
+function showMessage(message, timeout) {
+	timeout = typeof timeout !== 'undefined' ? timeout : 1500;
+	if (message === "") {
+		$(".ctlbtn").removeClass('ui-btn-active');
+		return;
+	}
 	$("#message").html(message);
 	$("#message").popup('open');
 	setTimeout(function() {
 		$("#message").popup('close');
 		$(".ctlbtn").removeClass('ui-btn-active');
-	}, 1500);
+	}, timeout);
+}
+function updateProgress() {
+	$.get('/progress', function(data) {
+		$('#title').html(data['title']);
+		$('#duration').html(data['duration']);
+		$('#progressbar').val(data['progress']);
+		$('#progressbar').slider('refresh');
+	});
+}
+function getProgress() {
+	updateProgress();
+	$("#progressbar").on('slidestop', function(event) {
+		var gotoValue = $("#progressbar").val();
+		console.log(gotoValue);
+		$.post('/goto/' + gotoValue, function(data) {
+			if (data !== 'OK') {
+				showMessage("Nothing to do", 1500);
+			}
+		});
+	});
+	setInterval(function() {
+		updateProgress();
+	}, 5000);
 }

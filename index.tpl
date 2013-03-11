@@ -12,15 +12,22 @@
 	</head>
 	<body>
 	  <div id="main" data-role="page" data-theme="b" data-content-theme="b">
-	  	<script type="text/javascript">
-			$("#main").on('pageshow', function() {
-				refreshHistory();
-			});
+		%setdefault('currentVideo', None)
+	  	<script>
+	  		$('#main').on('pageshow', function() {
+	  			getProgress();
+	  		});
 	  	</script>
 	  	<div data-role="popup" id="message" class="ui-content" data-theme="e"></div>
-	  	<div data-role="header">
-	  		<a href="/" data-icon="home" data-ajax="false" data-iconpos="notext">Home</a>
+	  	<div data-role="header" data-theme="a">
+	  		<a href="/" data-icon="ihome" data-ajax="false" data-iconpos="notext" class="ui-icon-nodisc">Home</a>
 	  		<h1>Remote Control</h1>
+	  		<div data-role="controlgroup" data-type="horizontal" class="ui-btn-right">
+		  		<a href="#confirmDialog" data-rel="popup" data-position-to="window" data-inline="true" data-transition="pop" data-icon="power" data-iconpos="notext" class="ui-icon-nodisc" data-role="button">Shutdown</a>
+		  		%include confirm_dialog id="confirmDialog", title="Power off?", sub_title="Are you sure to power off the box?", message="You have to re-plug the power to start the box again", yes_url="/shutdown"
+		  		<a href="#resetConfirmDialog" data-rel="popup" data-position-to="window" data-inline="true" data-transition="pop" data-icon="restart" data-iconpos="notext" class="ui-icon-nodisc" data-role="button">Restart</a>
+		  		%include confirm_dialog id="resetConfirmDialog", title="Restart?", sub_title="Are you sure to restart the box?", message="You may lose some unsaved information.", yes_url="/restart"
+		  	</div>
 	  	</div>
 	  	<div data-role="content">
   			<div data-role="navbar">
@@ -36,19 +43,54 @@
   					</ul>
   				%end for
 	  		</div>
+			%if currentVideo:
+				<input type="range" id="progressbar" value="0" min="0" max="{{currentVideo.duration}}" data-highlight="true" data-mini="true"
+				%if not currentVideo.sections:
+					disabled="disabled"
+				%end
+				data-theme="b"/>
+			%end
 	  		<div data-role="collapsible" data-collapsed="false" data-theme="b" data-content-theme="b">
 	  			<h3>Now Playing</h3>
-	  			%setdefault('currentVideo', None)
+	  			%if currentVideo and currentVideo.allRelatedVideo:
+		  			<div data-role="controlgroup" data-type="horizontal" id="relatedVideo">
+		  				%if currentVideo.previousVideo:
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.previousVideo}}" data-role="button">上一集</a>
+			  			%end
+		  				%if currentVideo.nextVideo:
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.nextVideo}}" data-role="button">下一集</a>
+			  			%end
+			  			%if currentVideo.allRelatedVideo:
+						<a href="#allVideo" data-rel="popup" data-role="button" data-position-to="window" data-inline="true">全集</a>
+						<div data-role="popup" id="allVideo" data-theme="d">
+							<ul data-role="listview" data-inset="true" data-theme="d">
+								<li data-role="divider" data-theme="e">请选择视频</li>
+								%for v in currentVideo.allRelatedVideo:
+									<li data-theme=
+										%if v['current']:
+											'e'
+										%else:
+											'd'
+										%end
+										>
+										<a href="/forward?site={{currentVideo.site}}&url={{v['url']}}">{{v['title']}}</a>
+									</li>
+								%end
+							</ul>
+						</div>
+			  			%end>
+		  			</div>
+	  			%end
 	  			%if currentVideo and currentVideo.availableFormat:
-	  			<div data-role="controlgroup" data-type="horizontal" id="formatSelect">
-		  			%for f in currentVideo.availableFormat:
-		  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.url}}&format={{f}}" data-role="button" class="
-		  			%if currentVideo.currentFormat == f: 
-		  			ui-disabled
-		  			%end
-		  			">{{currentVideo.formatDict[f]}}</a>
-		  			%end
-	  			</div>
+		  			<div data-role="controlgroup" data-type="horizontal" id="formatSelect">
+			  			%for f in currentVideo.availableFormat:
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.url}}&format={{f}}" data-role="button" class="
+			  			%if currentVideo.currentFormat == f: 
+			  			ui-disabled
+			  			%end
+			  			">{{currentVideo.formatDict[f]}}</a>
+			  			%end
+		  			</div>
 	  			%end
 	  			<div class='well'>
 	  				%setdefault('title', 'N/A')
@@ -78,11 +120,20 @@
 	  			<div class="ui-bar">
 	  				<a href="#" onclick="clearHistory();return false" data-role="button" data-inline="true" data-mini="true">Clear all the history</a>
 	  			</div>
-	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView">
+	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView" data-split-icon="delete">
+	  				%for h in history:
+	                    <li>
+	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit">
+	                            <h3>{{h.title}}</h3>
+	                            <p>总共{{h.durationToStr()}}({{websites[h.site]['title']}})</p>
+	                        </a>
+	                        <a href="#" onclick="deleteHistory('{{h.dbid}}');return false"></a>
+	                    </li>
+                    %end
 	  			</ul>
 	  		</div>
 	  	</div>
-	  	<div data-role="footer">
+	  	<div data-role="footer" data-theme="a">
 	  		<h4>Powered by blade&nbsp;&copy;&nbsp;<b>bladeworks</b></h4>
 	  	</div>
 	  </div>
