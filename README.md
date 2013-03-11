@@ -102,6 +102,6 @@ VideoPI是基于bottlepy以及jquerymobile的一个RB的遥控器，可以在电
 
 ## 使用VideoPI
 
-* 使用电脑或智能手机或平板电脑打开网址：http://<raspberry pi ip>就可以看到控制界面了。
+* 使用电脑或智能手机或平板电脑打开网址：`http://<raspberry pi ip>`就可以看到控制界面了。
 * 点击Browse可以选择腾讯视频，优酷以及Youtube。
 * 在相应网站找到视频后点击机会在RB中播放。
