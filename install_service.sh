@@ -1,2 +1,2 @@
 #!/bin/sh
-ln -s /root/VideoPI/VideoPI.service /etc/systemd/system/multi-user.target.wants/VideoPI.service
+ln -s /root/VideoPI/videopi.service /etc/systemd/system/multi-user.target.wants/videopi.service
