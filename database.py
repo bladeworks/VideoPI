@@ -21,15 +21,15 @@ def db_getHistory():
         return videos
 
 
-def db_writeHistory(video, last_play_pos=0, update_pos=False):
+def db_writeHistory(video):
     con = sqlite3.connect('media.db')
     logging.debug("Write: %s", video)
     with con:
         if video.dbid:
-            if update_pos:
+            if video.progress > 0:
                 con.execute("""
-                    UPDATE media SET last_play_pos = ? WHERE id = ?
-                    """, (last_play_pos, video.dbid,))
+                    UPDATE media SET last_play_pos = ?, last_play_date = ? WHERE id = ?
+                    """, (video.progress, int(time.time()), video.dbid,))
             else:
                 con.execute("""
                     UPDATE media SET last_play_date = ? WHERE id = ?
@@ -38,7 +38,7 @@ def db_writeHistory(video, last_play_pos=0, update_pos=False):
             con.execute("""
                 INSERT INTO media (title, url, last_play_date, last_play_pos, duration, site)
                 VALUES (?, ?, ?, ?, ?, ?)
-                """, (buffer(video.title), buffer(video.url), int(time.time()), last_play_pos, video.duration, video.site))
+                """, (buffer(video.title), buffer(video.url), int(time.time()), 0, video.duration, video.site))
         con.commit()
 
 
@@ -49,7 +49,8 @@ def db_getById(id):
         cur = con.cursor()
         cur.execute("SELECT * FROM media WHERE id = ?", [id])
         data = cur.fetchone()
-        return Video(str(data['title']), str(data['url']), '', data['duration'], data['site'], dbid=data['id'])
+        return Video(str(data['title']), str(data['url']), '', data['duration'], data['site'],
+                     dbid=data['id'], progress=int(data['last_play_pos']))
 
 
 def db_delete(id):

@@ -1,2 +1,2 @@
 #!/bin/sh
-cd /root/videopi && python server.py
+cd /root/VideoPI && python server.py

@@ -176,7 +176,7 @@ def terminatePlayer():
         player = None
 
 
-def play_url():
+def play_url(where=0):
     global player, currentVideo, currentPlayerApp, playQueue, paused, progress
     clearQueue()
     db_writeHistory(currentVideo)
@@ -197,7 +197,10 @@ def play_url():
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             # Because omxplayer doesn't support list we have to play one by one.
-            fillQueue()
+            if currentVideo.progress > 0:
+                goto(currentVideo.progress)
+            else:
+                fillQueue()
     else:
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'MPlayerX'
@@ -251,7 +254,7 @@ def _play_url(url, format=None, dbid=None):
         logging.info('currentVideo = %s', str(currentVideo))
         if dbid:
             currentVideo.dbid = dbid
-        return play_url()
+        return play_url(where=currentVideo.progress)
     else:
         logging.info('No video found, return the web page.')
         return parseResult
@@ -300,6 +303,8 @@ def control(action):
                 logging.info("Send key code: %s", actionToKey[action])
                 player.stdin.write(actionToKey[action])
             if action == "stop":
+                if currentVideo.progress > 0:
+                    db_writeHistory(currentVideo)
                 player = None
                 currentVideo = None
             if action == "pause":

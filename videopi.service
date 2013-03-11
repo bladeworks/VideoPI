@@ -3,7 +3,7 @@ Description=VideoPI
 After=netcfg@ethernet-eth0.service
 
 [Service]
-ExecStart=/root/videopi/start.sh
+ExecStart=/root/VideoPI/start.sh
 Restart=always
 
 [Install]
