@@ -82,9 +82,9 @@ class Video:
         return (None, None)
 
     def __str__(self):
-        return "url=%s, realurl=%s, duration=%s, site=%s, typeid=%s, \
+        return "url=%s, realurl=%s, duration=%s, progress=%s, site=%s, typeid=%s, \
                dbid=%s, availableFormat=%s, currentFormat=%s, sections=%s" % \
-               (self.url, self.realUrl, self.duration, self.site, self.typeid,
+               (self.url, self.realUrl, self.duration, self.progress, self.site, self.typeid,
                self.dbid, self.availableFormat, self.currentFormat, self.sections)
 
 
