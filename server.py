@@ -185,6 +185,7 @@ def play_url(where=0):
     db_writeHistory(currentVideo)
     terminatePlayer()
     logging.info("Playing %s", currentVideo.realUrl)
+    logging.debug("currentVideo = %s", currentVideo)
     if currentPlatform != 'Darwin':
         global playThread
         if not playThread or (not playThread.isAlive()):
