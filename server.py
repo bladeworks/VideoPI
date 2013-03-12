@@ -260,6 +260,7 @@ def _play_url(url, format=None, dbid=None):
         logging.info('currentVideo = %s', str(currentVideo))
         if dbid:
             currentVideo.dbid = dbid
+            currentVideo.progress = db_getById(int(dbid)).progress
         return play_url(where=currentVideo.progress)
     else:
         logging.info('No video found, return the web page.')
