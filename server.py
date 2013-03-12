@@ -115,6 +115,7 @@ logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
 
 def exceptionLogger(type, value, tb):
     logging.exception("Uncaught exception: %s", value)
+    sys.__excepthook__(type, value, tb)
 
 
 sys.excephook = exceptionLogger
