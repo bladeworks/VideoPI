@@ -164,23 +164,28 @@ class WebParser:
         code = code & 0xffffffff
         return hex(code)[2:].rstrip('L').zfill(8)
 
+    def getTZ(self):
+        return time.timezone / (-60*60)
+
     def fetchWeb(self, url, via_proxy=False):
         logging.debug("Fetch %s", url)
         host = urlparse(url).hostname
-        headers = {'User-Agent': 'Mozilla/5.0',
-                   'X-Forwarded-For': '220.181.111.158'}
-        proxy = urllib2.ProxyHandler({})
-        if via_proxy:
-            proxy = urllib2.ProxyHandler({'http': 'h0.edu.bj.ie.sogou.com'})
-            t = hex(int(time.time()))[2:].rstrip('L').zfill(8)
+        headers = {}
+        if self.getTZ != 8:
             headers = {'User-Agent': 'Mozilla/5.0',
-                       'Host': host,
-                       'X-Forwarded-For': '220.181.111.158',
-                       'Proxy-Connection': 'keep-alive',
-                       'X-Sogou-Auth': '81795E50665FE4212A3B4D3391950B74/30/853edc6d49ba4e27',
-                       'X-Sogou-Tag': self.calc_sogou_hash(t, host),
-                       'X-Sogou-Timestamp': t}
-        urllib2.install_opener(urllib2.build_opener(proxy))
+                       'X-Forwarded-For': '220.181.111.158'}
+            proxy = urllib2.ProxyHandler({})
+            if via_proxy:
+                proxy = urllib2.ProxyHandler({'http': 'h0.edu.bj.ie.sogou.com'})
+                t = hex(int(time.time()))[2:].rstrip('L').zfill(8)
+                headers = {'User-Agent': 'Mozilla/5.0',
+                           'Host': host,
+                           'X-Forwarded-For': '220.181.111.158',
+                           'Proxy-Connection': 'keep-alive',
+                           'X-Sogou-Auth': '81795E50665FE4212A3B4D3391950B74/30/853edc6d49ba4e27',
+                           'X-Sogou-Tag': self.calc_sogou_hash(t, host),
+                           'X-Sogou-Timestamp': t}
+            urllib2.install_opener(urllib2.build_opener(proxy))
         req = urllib2.Request(url.encode('utf8'), None, headers)
         return urllib2.urlopen(req).read()
 
