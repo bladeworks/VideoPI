@@ -181,8 +181,7 @@ class WebParser:
                        'X-Sogou-Tag': self.calc_sogou_hash(t, host),
                        'X-Sogou-Timestamp': t}
         urllib2.install_opener(urllib2.build_opener(proxy))
-        req = urllib2.Request(url, None, headers)
-        print headers
+        req = urllib2.Request(url.encode('utf8'), None, headers)
         return urllib2.urlopen(req).read()
 
     def getAvailableFormat(self):
