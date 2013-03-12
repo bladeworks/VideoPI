@@ -202,7 +202,7 @@ def play_url(where=0):
         else:
             # Because omxplayer doesn't support list we have to play one by one.
             if currentVideo.progress > 0:
-                result = goto(currentVideo.progress)
+                result = goto(currentVideo.progress, 0)
                 if result != 'OK':
                     fillQueue()
             else:
@@ -367,12 +367,15 @@ def get_progress():
 
 
 @post('/goto/<where>')
-def goto(where):
+def goto(where, fromPos=-1):
     logging.info("Goto %s", where)
     new_progress, c_idx = currentVideo.getSectionsFrom(int(where))
     logging.debug("new_progress = %s, c_idx = %s", new_progress, c_idx)
+    currentIdx = 0
+    if fromPos == -1:
+        currentIdx = currentVideo.getCurrentIdx()
     if new_progress is not None and c_idx is not None:
-        if c_idx != currentVideo.getCurrentIdx():
+        if c_idx != currentIdx:
             currentVideo.progress = new_progress
             clearQueue()
             fillQueue(parseM3U()[c_idx:])
