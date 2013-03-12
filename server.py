@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-from bottle import route, run, template, request, static_file, post, get, redirect
+from bottle import route, run, template, request, static_file, post, get, redirect, error, response
 from database import *
 from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser, YoutubeWebParser
 from string import Template
@@ -377,10 +377,10 @@ def forward():
     global vid, title, duration, duration_str, current_website
     format = None
     url = request.query.url
+    if current_website and url.startswith('/'):
+        url = websites[current_website]['url'] + url
+    logging.debug("forward to url: %s", url)
     dbid = None
-    if current_website == 'youtube' and 'search_query' in request.query:
-        url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
-        logging.debug("The url for youtube search is: %s", url)
     if 'site' in request.query:
         current_website = request.query.site
     if 'format' in request.query:
@@ -388,6 +388,9 @@ def forward():
         logging.info("Forwarding to %s", url)
     if 'dbid' in request.query:
         dbid = request.query.dbid
+    if current_website == 'youtube' and 'search_query' in request.query:
+        url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
+        logging.debug("The url for youtube search is: %s", url)
     return _play_url(url, format, dbid)
 
 
@@ -401,6 +404,20 @@ def shutdown():
 def restart():
     subprocess.call(['sync'])
     subprocess.call(['reboot'])
+
+
+@error(404)
+def error404(error):
+    logging.debug("404 on url: %s", request.url)
+    redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
+                                        request.url.replace('http://localhost:8000',
+                                        websites[current_website]['url']))
+    logging.debug("Redirect to %s", redirectTo)
+    response.set_header('location', redirectTo)
+    response.status = 303
+
+import bottle
+bottle.debug = True
 
 if currentPlatform == 'Darwin':
     run(host='0.0.0.0', port=8000, reloader=True)

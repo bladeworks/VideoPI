@@ -220,11 +220,18 @@ class QQWebParserMP4(WebParser):
     qq_duration_pattern = re.compile('duration:"(?P<duration>\d+)"')
     qq_typeid_pattern = re.compile('typeid:(?P<typeid>\d)')
     qq_tv_pattern = re.compile('\<a _hot="detail.story" title="(?P<title>.*?)" href="(?P<url>.*?)"\>')
+    qq_url_pattern = re.compile('url=(?P<url>.*?)"')
 
     def __init__(self, url, format):
         WebParser.__init__(self, "qqmp4", url, format)
 
     def parse(self):
+        if (self.url.startswith('http://v.qq.com/page')):
+            responseString = self.parseWeb()
+            self.url = self.parseField(self.qq_url_pattern, responseString, 'url').\
+                replace('.html?vid=', '/') + '.html'
+            logging.debug("Go to url %s", self.url)
+            return self.parse()
         if self.url.startswith('http://v.qq.com/cover') or self.url.startswith('http://v.qq.com/prev'):
             video = self.parseVideo()
             if video.typeid == 2:
@@ -300,9 +307,14 @@ class QQWebParserMP4(WebParser):
     def replaceQQ(self, responseString):
         return responseString.replace(' href="/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
             replace(' href="http://v.qq.com/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
-            replace('form action="', 'form action="/forward?site=%s&url=' % self.site).\
-            replace('role="search">',
-                    'role="search"><input type="hidden" name="url" value="http://v.qq.com/search.html">')
+            replace('form action="/', 'form action="/forward?site=%s&url=http://v.qq.com/' % self.site).\
+            replace('form action="http://v.qq.com/', 'form action="/forward?site=%s&url="http://v.qq.com/' % self.site).\
+            replace('搜索关键词</label>',
+                    '搜索关键词</label><input type="hidden" name="url" value="http://v.qq.com/search.html">').\
+            replace('搜索：</label>',
+                    '搜索：</label><input type="hidden" name="url" value="http://v.qq.com/search.html">').\
+            replace(' name="sform" id="sform"', '').\
+            replace(' name="sformMid" id="sformMid"', '')
 
 
 class QQWebParser(QQWebParserMP4):
