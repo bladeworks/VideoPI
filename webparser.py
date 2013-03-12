@@ -401,6 +401,7 @@ class YoukuWebParser(WebParser):
     def replaceYouku(self, responseString):
         return responseString.replace(' href="http://static', ' nohref="http://static').\
             replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
+            replace(" href='http://", " href='/forward?site=%s&url=http://" % self.site).\
             replace(' nohref="http://static', ' href="http://static').\
             replace('action="http://www.soku.com/search_video"',
                     'action="/forward"').\
