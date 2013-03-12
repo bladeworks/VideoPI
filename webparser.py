@@ -307,12 +307,8 @@ class QQWebParserMP4(WebParser):
     def replaceQQ(self, responseString):
         return responseString.replace(' href="/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
             replace(' href="http://v.qq.com/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
-            replace('form action="/', 'form action="/forward?site=%s&url=http://v.qq.com/' % self.site).\
-            replace('form action="http://v.qq.com/', 'form action="/forward?site=%s&url="http://v.qq.com/' % self.site).\
-            replace('搜索关键词</label>',
-                    '搜索关键词</label><input type="hidden" name="url" value="http://v.qq.com/search.html">').\
-            replace('搜索：</label>',
-                    '搜索：</label><input type="hidden" name="url" value="http://v.qq.com/search.html">').\
+            replace('form action="/', 'form action="/forward').\
+            replace('form action="http://v.qq.com/', 'form action="/forward?url="http://v.qq.com/').\
             replace(' name="sform" id="sform"', '').\
             replace(' name="sformMid" id="sformMid"', '')
 
@@ -405,7 +401,13 @@ class YoukuWebParser(WebParser):
     def replaceYouku(self, responseString):
         return responseString.replace(' href="http://static', ' nohref="http://static').\
             replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
-            replace(' nohref="http://static', ' href="http://static')
+            replace(' nohref="http://static', ' href="http://static').\
+            replace('action="http://www.soku.com/search_video"',
+                    'action="/forward"').\
+            replace('onsubmit="return MiniHeader.dosearch(this);" ', '').\
+            replace('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"',
+                    'type="submit"').\
+            replace(' id="headq"', '')
 
 
 class YoutubeWebParser(WebParser):

@@ -8,6 +8,7 @@ import subprocess
 import platform
 import sys
 import time
+import urllib
 from threading import Thread
 from Queue import Queue
 
@@ -391,6 +392,12 @@ def forward():
     if current_website == 'youtube' and 'search_query' in request.query:
         url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
         logging.debug("The url for youtube search is: %s", url)
+    if current_website == 'youku' and 'searchdomain' in request.query:
+        url = "http://www.soku.com/search_video/q_" + urllib.quote_plus(request.query.q.encode('utf8'))
+        logging.debug("The url for youku search is: %s", url)
+    if current_website in ('qq', 'qqmp4') and 'ms_key' in request.query:
+        url = "http://v.qq.com/search.html"
+        logging.debug("The url for youku search is: %s", url)
     return _play_url(url, format, dbid)
 
 
