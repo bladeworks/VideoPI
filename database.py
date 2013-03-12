@@ -27,6 +27,7 @@ def db_writeHistory(video):
     with con:
         if video.dbid:
             if video.progress > 0:
+                logging.debug("set last_play_pos = %s for %s", video.progress, video.dbid)
                 con.execute("""
                     UPDATE media SET last_play_pos = ?, last_play_date = ? WHERE id = ?
                     """, (video.progress, int(time.time()), video.dbid,))
