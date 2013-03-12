@@ -201,7 +201,9 @@ def play_url(where=0):
         else:
             # Because omxplayer doesn't support list we have to play one by one.
             if currentVideo.progress > 0:
-                goto(currentVideo.progress)
+                result = goto(currentVideo.progress)
+                if result != 'OK':
+                    fillQueue()
             else:
                 fillQueue()
     else:
@@ -307,6 +309,7 @@ def control(action):
                 player.stdin.write(actionToKey[action])
             if action == "stop":
                 if currentVideo.progress > 0:
+                    logging.debug("Write last_play_pos to %s", currentVideo.progress)
                     db_writeHistory(currentVideo)
                 player = None
                 currentVideo = None
