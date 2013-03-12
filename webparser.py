@@ -374,7 +374,11 @@ class YoukuWebParser(WebParser):
         #     "k2": "17a225161b46a9bc0"
         # },
         sections = d['data'][0]['segs'][self.format2key[self.format]]
-        previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideoes(d['data'][0]['list'])
+        previousVideo, nextVideo, allRelatedVideo = None, None, []
+        try:
+            previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideoes(d['data'][0]['list'])
+        except KeyError:
+            pass
         return Video(title.encode('utf8'), self.url, realUrl, duration, self.site,
                      availableFormat=self.availableFormat, currentFormat=self.format,
                      previousVideo=previousVideo, nextVideo=nextVideo,
