@@ -167,7 +167,7 @@ def play_list():
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
             time.sleep(1)
-            if not currentVideo.paused:
+            if currentVideo and (not currentVideo.paused):
                 currentVideo.progress += 1
 
 
@@ -187,7 +187,7 @@ def play_url(where=0):
     logging.info("Playing %s", currentVideo.realUrl)
     if currentPlatform != 'Darwin':
         global playThread
-        if not playThread:
+        if not playThread or (not playThread.isAlive()):
             logging.debug("New a thred to play the list.")
             playThread = Thread(target=play_list)
             playThread.start()
