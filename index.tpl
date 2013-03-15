@@ -55,10 +55,10 @@
 	  			%if currentVideo and currentVideo.allRelatedVideo:
 		  			<div data-role="controlgroup" data-type="horizontal" id="relatedVideo">
 		  				%if currentVideo.previousVideo:
-			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.previousVideo}}" data-role="button">上一集</a>
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.previousVideo}}" data-role="button" data-ajax="false">上一集</a>
 			  			%end
 		  				%if currentVideo.nextVideo:
-			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.nextVideo}}" data-role="button">下一集</a>
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.nextVideo}}" data-role="button" data-ajax="false">下一集</a>
 			  			%end
 			  			%if currentVideo.allRelatedVideo:
 						<a href="#allVideo" data-rel="popup" data-role="button" data-position-to="window" data-inline="true">全集</a>
@@ -88,7 +88,7 @@
 			  			%if currentVideo.currentFormat == f: 
 			  			ui-disabled
 			  			%end
-			  			">{{currentVideo.formatDict[f]}}</a>
+			  			" data-ajax="false">{{currentVideo.formatDict[f]}}</a>
 			  			%end
 		  			</div>
 	  			%end
@@ -123,7 +123,7 @@
 	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView" data-split-icon="delete">
 	  				%for h in history:
 	                    <li>
-	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit">
+	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit" data-ajax="false">
 	                            <h3>{{h.title}}</h3>
 	                            <p>总共{{h.durationToStr()}}({{websites[h.site]['title']}})</p>
 	                        </a>

@@ -6,6 +6,6 @@
 		<h3 class="ui-title">{{sub_title}}</h3>
 		<p>{{message}}</p>
 		<a href="#" data-role="button" data-inline="true" data-rel="back" data-theme="c">No</a>
-		<a href="{{yes_url}}" data-role="button" data-inline="true" data-theme="e">Yes</a>
+		<a href="{{yes_url}}" onclick="goAndRedirect('{{yes_url}}', '/'); return false;" data-role="button" data-inline="true" data-theme="e">Yes</a>
 	</div>
 </div>

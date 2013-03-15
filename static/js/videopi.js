@@ -70,3 +70,8 @@ function getProgress() {
 		updateProgress();
 	}, 5000);
 }
+function goAndRedirect(go, redirect) {
+	$.get(go, function(data) {
+		window.location = redirect;
+	});
+}

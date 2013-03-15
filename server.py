@@ -411,13 +411,13 @@ def forward():
     return _play_url(url, format, dbid)
 
 
-@route('/shutdown')
+@get('/shutdown')
 def shutdown():
     subprocess.call(['sync'])
     subprocess.call(['poweroff'])
 
 
-@route('/restart')
+@get('/restart')
 def restart():
     subprocess.call(['sync'])
     subprocess.call(['reboot'])
