@@ -60,7 +60,7 @@ class Video:
         return duration_str
 
     def durationToStr(self):
-        if self.duration <= 0:
+        if int(self.duration) <= 0:
             return "N/A"
         return self.formatDuration(self.duration)
 
@@ -412,6 +412,63 @@ class YoukuWebParser(WebParser):
             replace('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"',
                     'type="submit"').\
             replace(' id="headq"', '')
+
+
+class WangyiWebParser(WebParser):
+
+    wangyi_pattern = re.compile('<a href="(?P<url>http://v.163.com/movie.*?)".*?>(?P<title>.*?)</a>')
+    wangyi_url_replace = re.compile('a href="(?P<url>http://so.open.163.com.*?)"')
+    wangyi_title_pattern = re.compile("<span class='thdTit'>(?P<title>.*?)</span>")
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, 'wangyi', url, format)
+
+    def parse(self):
+        if 'v.163.com/movie' in self.url:
+            return self.parseVideo()
+        else:
+            return self.parseWeb()
+
+    def parseVideo(self):
+        logging.info("parseVideo %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        title = None
+        nextVideo = None
+        previousVideo = None
+        allRelatedVideo = []
+        current = False
+        for u, t in self.wangyi_pattern.findall(responseString):
+            t = t.decode('gbk').encode('utf8')
+            if current and (not nextVideo):
+                nextVideo = u
+            relatedVideo = {'title': t, 'url': u, 'current': False}
+            if u.decode('gbk').encode('utf8') == self.url:
+                title = t
+                current = True
+                relatedVideo['current'] = True
+            if not current:
+                previousVideo = u
+            allRelatedVideo.append(relatedVideo)
+        if not title:
+            title = self.parseField(self.wangyi_title_pattern, responseString, 'title').decode('gbk').encode('utf8')
+        duration = 0
+        realUrl = self.getVideoUrl()
+        return Video(title, self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format,
+                     allRelatedVideo=allRelatedVideo, previousVideo=previousVideo, nextVideo=nextVideo)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
+        return self.replaceWangyi(responseString).decode('gbk')
+
+    def replaceWangyi(self, responseString):
+        s = responseString.replace('a href="http://v.163.com',
+                                   'a href="/forward?site=%s&url=http://v.163.com' % self.site).\
+            replace('<form id="videoSearchForm" target="_blank">', '<form action="/forward" target="_blank">')
+        return self.wangyi_url_replace.sub(lambda m: m.group(0).replace(m.group('url'),
+                                           '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s)
 
 
 class YoutubeWebParser(WebParser):

@@ -43,9 +43,9 @@
   					</ul>
   				%end for
 	  		</div>
-			%if currentVideo:
+			%if currentVideo and int(currentVideo.duration) > 0:
 				<input type="range" id="progressbar" value="0" min="0" max="{{currentVideo.duration}}" data-highlight="true" data-mini="true"
-				%if not currentVideo.sections:
+				%if (not currentVideo.sections) or len(currentVideo.sections) == 1:
 					disabled="disabled"
 				%end
 				data-theme="b"/>
@@ -93,10 +93,13 @@
 		  			</div>
 	  			%end
 	  			<div class='well'>
-	  				%setdefault('title', 'N/A')
-	  				%setdefault('duration', 'N/A')
-	  				<p>Title: <span id="title">{{title}}</span></p>
-	  				<p>Duration: <span id="duration">{{duration}}</span></p>
+	  				%if currentVideo:
+		  				<p>Title: <span id="title">{{currentVideo.title}}</span></p>
+		  				<p>Duration: <span id="duration">{{currentVideo.durationToStr()}}</span></p>
+	  				%else:
+		  				<p>Title: <span id="title">N/A</span></p>
+		  				<p>Duration: <span id="duration">N/A</span></p>
+	  				%end
 	  			</div>
 	  		</div>
 	  		<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="c">

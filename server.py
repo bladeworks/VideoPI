@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 from bottle import route, run, template, request, static_file, post, get, redirect, error, response
 from database import *
-from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser, YoutubeWebParser
+from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser, YoutubeWebParser, WangyiWebParser
 from string import Template
 import subprocess
 import platform
@@ -34,6 +34,13 @@ websites = {
         "parser": YoukuWebParser,
         "icon": "http://www.youku.com/favicon.ico",
         "info": "mp4格式，分段，可选择清晰度。"
+    },
+    "wangyi": {
+        "title": "网易公开课",
+        "url": "http://open.163.com",
+        "parser": WangyiWebParser,
+        "icon": "http://open.163.com/favicon.ico",
+        "info": "Nothing"
     },
     "youtube": {
         "title": "Youtube",
@@ -223,8 +230,7 @@ def play_url(where=0):
  -e "set position of window 1 to {1900, 30}"\
  -e "end tell" """
         executeCmdForMac(templateStr)
-    return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                    websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
+    return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
                     history=db_getHistory())
 
 
@@ -269,16 +275,11 @@ def _play_url(url, format=None, dbid=None):
 
 @route('/')
 def index():
-    global title, duration_str
     if not isProcessAlive(player):
         global currentVideo
         currentVideo = None
-    if currentVideo:
-        return template("index", title=currentVideo.title, duration=currentVideo.durationToStr(),
-                        websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
-                        history=db_getHistory())
-    else:
-        return template('index', websites=websites, actionDesc=actionDesc, history=db_getHistory())
+    return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
+                    history=db_getHistory())
 
 
 @route('/play')
@@ -385,7 +386,7 @@ def goto(where, fromPos=-1):
 
 @route('/forward')
 def forward():
-    global vid, title, duration, duration_str, current_website
+    global vid, title, current_website
     format = None
     url = request.query.url
     if current_website and url.startswith('/'):
@@ -408,6 +409,9 @@ def forward():
     if current_website in ('qq', 'qqmp4') and 'ms_key' in request.query:
         url = "http://v.qq.com/search.html"
         logging.debug("The url for youku search is: %s", url)
+    if current_website == 'wangyi' and 'vs' in request.query and not url:
+        url = "http://so.open.163.com/movie/search/searchprogram/ot0/%s/1.html?vs=%s&pltype=2" % (request.query.vs, request.query.vs)
+        logging.debug("The url for wangyi search is: %s", url)
     return _play_url(url, format, dbid)
 
 
