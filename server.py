@@ -414,13 +414,13 @@ def forward():
 @get('/shutdown')
 def shutdown():
     subprocess.call(['sync'])
-    subprocess.Popen('sleep 2; poweroff')
+    subprocess.Popen('sleep 2; poweroff', shell=True)
 
 
 @get('/restart')
 def restart():
     subprocess.call(['sync'])
-    subprocess.Popen('sleep 2; reboot')
+    subprocess.Popen('sleep 2; reboot', shell=True)
 
 
 @error(404)
