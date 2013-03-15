@@ -417,7 +417,7 @@ class YoukuWebParser(WebParser):
 class WangyiWebParser(WebParser):
 
     wangyi_pattern = re.compile('<a href="(?P<url>http://v.163.com/movie.*?)".*?>(?P<title>.*?)</a>')
-    wangyi_url_replace = re.compile('a href="(?P<url>http://so.open.163.com.*?)"')
+    wangyi_url_replace = re.compile('a .*?href="(?P<url>http://(so.open.163.com|v.163.com|open.163.com).*?)"')
     wangyi_title_pattern = re.compile("<span class='thdTit'>(?P<title>.*?)</span>")
 
     def __init__(self, url, format):
@@ -464,9 +464,7 @@ class WangyiWebParser(WebParser):
         return self.replaceWangyi(responseString).decode('gbk')
 
     def replaceWangyi(self, responseString):
-        s = responseString.replace('a href="http://v.163.com',
-                                   'a href="/forward?site=%s&url=http://v.163.com' % self.site).\
-            replace('<form id="videoSearchForm" target="_blank">', '<form action="/forward" target="_blank">')
+        s = responseString.replace('<form id="videoSearchForm" target="_blank">', '<form action="/forward" target="_blank">')
         return self.wangyi_url_replace.sub(lambda m: m.group(0).replace(m.group('url'),
                                            '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s)
 
