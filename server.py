@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 from bottle import route, run, template, request, static_file, post, get, redirect, error, response
 from database import *
-from webparser import Video, QQWebParser, QQWebParserMP4, YoukuWebParser, YoutubeWebParser, WangyiWebParser
+from webparser import *
 from string import Template
 import subprocess
 import platform
@@ -40,6 +40,13 @@ websites = {
         "url": "http://open.163.com",
         "parser": WangyiWebParser,
         "icon": "http://open.163.com/favicon.ico",
+        "info": "Nothing"
+    },
+    "yinyuetai": {
+        "title": "音悦台",
+        "url": "http://www.yinyuetai.com",
+        "parser": YinyuetaiWebParser,
+        "icon": "http://www.yinyuetai.com/favicon.ico",
         "info": "Nothing"
     },
     "youtube": {
@@ -333,7 +340,7 @@ def history():
     for video in videos:
         responseString += """
                         <li>
-                            <a href="/play?id=%s" class="ui-link-inherit">
+                            <a href="/play?id=%s" class="ui-link-inherit" data-ajax="false">
                                 <h3>%s</h3>
                                 <p>总共%s(%s)</p>
                             </a>
@@ -387,14 +394,14 @@ def goto(where, fromPos=-1):
 @route('/forward')
 def forward():
     global vid, title, current_website
+    if 'site' in request.query:
+        current_website = request.query.site
     format = None
     url = request.query.url
     if current_website and url.startswith('/'):
         url = websites[current_website]['url'] + url
     logging.debug("forward to url: %s", url)
     dbid = None
-    if 'site' in request.query:
-        current_website = request.query.site
     if 'format' in request.query:
         format = int(request.query.format)
         logging.info("Forwarding to %s", url)

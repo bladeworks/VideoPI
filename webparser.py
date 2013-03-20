@@ -91,6 +91,7 @@ class Video:
 class WebParser:
     __metaclass__ = abc.ABCMeta
     m3u_pattern = re.compile('<input type="hidden" name="inf" value="(?P<m3u>.*?)"/>', flags=re.DOTALL)
+    duration_pattern = re.compile('Duration: (?P<duration>.*?),')
 
     def __init__(self, site, url, format):
         self.site = site
@@ -215,6 +216,31 @@ class WebParser:
             f.write('#EXTM3U\n')
             f.write(m3u)
         return "playlist.m3u"
+
+    def getSingleDurationWithFfmpeg(self, url):
+        logging.info("Get duration with ffmpeg for: %s", url)
+        duration = 0
+        try:
+            output = subprocess.check_output(['ffmpeg', '-i', url])
+            s = self.parseField(self.duration_pattern, output, 'duration')
+            ts = s.partition('.')[0].split(":")
+            duration += int(ts[0]) * 60 * 60
+            duration += int(ts[1]) * 60
+            duration += int(ts[2]) * 60
+        except:
+            pass
+        logging.info("Get duration with ffmpeg return: %s", duration)
+        return duration
+
+    def getDurationWithFfmpeg(self, url):
+        if url == 'playlist.m3u':
+            duration = 0
+            with open('playlist.m3u', 'r') as f:
+                for u in [v.strip() for v in f.readlines() if v.startswith('http')]:
+                    duration += self.getSingleDurationWithFfmpeg(u)
+            return duration
+        else:
+            return self.getSingleDurationWithFfmpeg(url)
 
 
 class QQWebParserMP4(WebParser):
@@ -451,8 +477,8 @@ class WangyiWebParser(WebParser):
             allRelatedVideo.append(relatedVideo)
         if not title:
             title = self.parseField(self.wangyi_title_pattern, responseString, 'title').decode('gbk').encode('utf8')
-        duration = 0
         realUrl = self.getVideoUrl()
+        duration = self.getDurationWithFfmpeg(realUrl)
         return Video(title, self.url, realUrl, duration, self.site,
                      availableFormat=self.availableFormat, currentFormat=self.format,
                      allRelatedVideo=allRelatedVideo, previousVideo=previousVideo, nextVideo=nextVideo)
@@ -467,6 +493,84 @@ class WangyiWebParser(WebParser):
         s = responseString.replace('<form id="videoSearchForm" target="_blank">', '<form action="/forward" target="_blank">')
         return self.wangyi_url_replace.sub(lambda m: m.group(0).replace(m.group('url'),
                                            '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s)
+
+
+class YinyuetaiWebParser(WebParser):
+
+    yinyuetai_title_pattern = re.compile('<meta property="og:title" content="(?P<title>.*?)"/>')
+    yinyuetai_duration_pattern = re.compile('duration : "(?P<duration>\d+?)"')
+    yinyuetai_list_title_pattern = re.compile('<a href="javascript:void(0)" title="(?P<title>.*?)">')
+    yinyuetai_list_url_pattern = re.compile('<span style="display:none" name="videoUrl">(?P<url>.*?)</span>')
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, 'yinyuetai', url, format)
+
+    def parse(self):
+        if 'www.yinyuetai.com/video' in self.url or \
+                'hc.yinyuetai.com/uploads/videos/common' in self.url or \
+                'www.yinyuetai.com/playlist' in self.url:
+            return self.parseVideo()
+        else:
+            return self.parseWeb()
+
+    def getRelatedVideoes(self, data):
+        nextVideo = None
+        previousVideo = None
+        allRelatedVideo = []
+        current = False
+        for d in data:
+            vid = d['vidEncoded']
+            title = d['title']
+            url = "http://v.youku.com/v_show/id_%s.html" % vid
+            if current and (not nextVideo):
+                nextVideo = url
+                logging.info("Next is %s" % nextVideo)
+            relatedVideo = {'title': title, 'url': url, 'current': False}
+            if url in self.url:
+                current = True
+                relatedVideo['current'] = True
+            if not current:
+                previousVideo = url
+            allRelatedVideo.append(relatedVideo)
+        logging.info("Previous is %s" % previousVideo)
+        return (previousVideo, nextVideo, allRelatedVideo)
+
+    def parseVideo(self):
+        logging.info("parseVideo %s", self.url)
+        sections = []
+        if 'hc.yinyuetai.com/uploads/videos/common' in self.url:
+            realUrl = self.url
+            title = 'N/A'
+            duration = self.getDurationWithFfmpeg(realUrl)
+        elif 'www.yinyuetai.com/playlist' in self.url:
+            responseString = self.fetchWeb(self.url)
+            titles = self.yinyuetai_list_title_pattern.findall(responseString)
+            urls = self.yinyuetai_list_url_pattern.findall(responseString)
+            realUrl = 'playlist.m3u'
+            with open('playlist.m3u', 'wb') as f:
+                f.write('#EXTM3U\n')
+                f.write('\n'.join(urls))
+            title = '\n'.join(titles)
+            duration = self.getDurationWithFfmpeg(realUrl)
+        else:
+            responseString = self.fetchWeb(self.url)
+            realUrl = self.getVideoUrl()
+            title = self.parseField(self.yinyuetai_title_pattern, responseString, 'title')
+            duration = self.parseField(self.yinyuetai_duration_pattern, responseString, 'duration')
+        previousVideo, nextVideo, allRelatedVideo = None, None, []
+        return Video(title, self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format,
+                     previousVideo=previousVideo, nextVideo=nextVideo,
+                     allRelatedVideo=allRelatedVideo, sections=sections)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
+        return self.replaceYinyuetai(responseString)
+
+    def replaceYinyuetai(self, responseString):
+        return responseString.replace('a href="', 'a href="forward?site=%s&url=' % self.site)
 
 
 class YoutubeWebParser(WebParser):
