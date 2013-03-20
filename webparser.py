@@ -221,7 +221,9 @@ class WebParser:
         logging.info("Get duration with ffmpeg for: %s", url)
         duration = 0
         try:
-            output = subprocess.check_output(['ffmpeg', '-i', url])
+            p = subprocess.Popen(['ffmpeg', '-i', url], stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
+            output = p.stdout.read()
             logging.debug('output = %s', output)
             s = self.parseField(self.duration_pattern, output, 'duration')
             ts = s.partition('.')[0].split(":")
