@@ -46,7 +46,7 @@ websites = {
         "title": "音悦台",
         "url": "http://www.yinyuetai.com",
         "parser": YinyuetaiWebParser,
-        "icon": "http://www.yinyuetai.com/favicon.ico",
+        "icon": "http://s.yytcdn.com/favicon.ico",
         "info": "Nothing"
     },
     "youtube": {
