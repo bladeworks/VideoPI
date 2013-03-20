@@ -222,6 +222,7 @@ class WebParser:
         duration = 0
         try:
             output = subprocess.check_output(['ffmpeg', '-i', url])
+            logging.debug('output = %s', output)
             s = self.parseField(self.duration_pattern, output, 'duration')
             ts = s.partition('.')[0].split(":")
             duration += int(ts[0]) * 60 * 60
@@ -551,7 +552,7 @@ class YinyuetaiWebParser(WebParser):
                 f.write('#EXTM3U\n')
                 f.write('\n'.join(urls))
             title = '\n'.join(titles)
-            duration = self.getDurationWithFfmpeg(realUrl)
+            duration = 0
         else:
             responseString = self.fetchWeb(self.url)
             realUrl = self.getVideoUrl()
