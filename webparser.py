@@ -46,8 +46,8 @@ class Video:
         self.previousSection = None
         self.nextSection = None
         self.currentSection = None
-        if int(self.duration) == 0:
-            self.duration = self.getDurationWithFfmpeg(realUrl)
+        if int(self.duration) == 0 and self.realUrl:
+            self.duration = self.getDurationWithFfmpeg(self.realUrl)
 
     def getDurationWithFfmpeg(self, url):
         if url == 'playlist.m3u':
