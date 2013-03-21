@@ -23,6 +23,7 @@ class Video:
         2: "高清",
         3: "超清"
     }
+    duration_pattern = re.compile('Duration: (?P<duration>.*?),')
 
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
                  dbid=None, availableFormat=[], currentFormat=None,
@@ -67,11 +68,14 @@ class Video:
                                  stderr=subprocess.STDOUT)
             output = p.stdout.read()
             logging.debug('output = %s', output)
-            s = self.parseField(self.duration_pattern, output, 'duration')
+            r = self.duration_pattern.search(str)
+            s = None
+            if r:
+                s = r.group('duration')
             ts = s.partition('.')[0].split(":")
             duration += int(ts[0]) * 60 * 60
             duration += int(ts[1]) * 60
-            duration += int(ts[2]) * 60
+            duration += int(ts[2])
         except:
             pass
         logging.info("Get duration with ffmpeg return: %s", duration)
@@ -123,7 +127,6 @@ class Video:
 class WebParser:
     __metaclass__ = abc.ABCMeta
     m3u_pattern = re.compile('<input type="hidden" name="inf" value="(?P<m3u>.*?)"/>', flags=re.DOTALL)
-    duration_pattern = re.compile('Duration: (?P<duration>.*?),')
 
     def __init__(self, site, url, format):
         self.site = site
