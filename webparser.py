@@ -582,7 +582,8 @@ class KankanWebParser(WebParser):
         WebParser.__init__(self, 'kankan', url, format)
 
     def parse(self):
-        if 'vod.kankan.com' in self.url or 'kankan.xunlei.com/vod' in self.url:
+        if 'vod.kankan.com' in self.url or 'kankan.xunlei.com/vod' in self.url or\
+                'yinyue.kankan.com/vod' in self.url:
             return self.parseVideo()
         else:
             return self.parseWeb()
