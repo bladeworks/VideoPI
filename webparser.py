@@ -129,6 +129,7 @@ class Video:
 class WebParser:
     __metaclass__ = abc.ABCMeta
     m3u_pattern = re.compile('<input type="hidden" name="inf" value="(?P<m3u>.*?)"/>', flags=re.DOTALL)
+    single_pattern = re.compile('下载地址.*?<a href="(?P<url>.*?)"', flags=re.DOTALL)
 
     def __init__(self, site, url, format):
         self.site = site
@@ -249,6 +250,8 @@ class WebParser:
             (self.url, format2keyword[self.format])
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
+        if not m3u:
+            m3u = self.parseField(self.single_pattern, responseString, 'url')
         with open('playlist.m3u', 'wb') as f:
             f.write('#EXTM3U\n')
             f.write(m3u)
@@ -563,6 +566,74 @@ class YinyuetaiWebParser(WebParser):
     def replaceYinyuetai(self, responseString):
         return responseString.replace('a href="/', 'a href="/forward?site=%s&url=/' % self.site).\
             replace('a href="http', 'a href="/forward?site=%s&url=http' % self.site)
+
+
+class KankanWebParser(WebParser):
+
+    kankan_subid_pattern = re.compile("subid=(?P<subid>\d+)")
+    kankan_movietitle_pattern = re.compile("var G_MOVIE_TITLE = '(?P<movietitle>.*?)';")
+    kankan_subids_subnames_pattern = re.compile(r"var G_MOVIE_DATA = \{subids:\[(?P<subids>.*?)\],subnames:\[(?P<subnames>.*?)\]")
+    kankan_duration_pattern = re.compile(r",length:(?P<duration>\d+),")
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, 'kankan', url, format)
+
+    def parse(self):
+        if 'vod.kankan.com' in self.url:
+            return self.parseVideo()
+        else:
+            return self.parseWeb()
+
+    def parseVideo(self):
+        logging.info("parseVideo %s", self.url)
+        subid = self.parseField(self.kankan_subid_pattern, self.url, "subid")
+        responseString = self.fetchWeb(self.url).decode('gbk').encode('utf8')
+        realUrl = self.getVideoUrl()
+        title = self.parseField(self.kankan_movietitle_pattern, responseString, "movietitle")
+        duration = self.parseField(self.kankan_duration_pattern, responseString, "duration")
+        previousVideo, nextVideo, allRelatedVideo = None, None, []
+        r = self.kankan_subids_subnames_pattern.search(responseString)
+        print title
+        if r:
+            subids = r.group('subids')
+            subnames = r.group('subnames')
+            if subids and subnames:
+                subids_list = subids.split(',')
+                subnames_list = [v[1:-1] for v in subnames.split(',')]
+                current = False
+                for idx, sid in enumerate(subids_list):
+                    url = self.url.replace(subid, sid)
+                    if current and not nextVideo:
+                        nextVideo = url
+                    t = subnames_list[idx]
+                    if sid == subid:
+                        allRelatedVideo.append({'title': t, 'url': url, 'current': True})
+                        current = True
+                        title += " " + t
+                    else:
+                        allRelatedVideo.append({'title': t, 'url': url, 'current': False})
+                    if not current:
+                        previousVideo = url
+        sections = []
+        print title
+        return Video(title, self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format,
+                     previousVideo=previousVideo, nextVideo=nextVideo,
+                     allRelatedVideo=allRelatedVideo, sections=sections)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
+        return self.replaceKankan(responseString)
+
+    def replaceKankan(self, responseString):
+        return responseString.replace('a href="', 'a href="/forward?site=%s&url=' % self.site).\
+            replace('a   href="', 'a   href="/forward?site=%s&url=' % self.site).\
+            replace('document.domain="kankan.com";', '').\
+            replace("document.domain = 'kankan.com';", '').\
+            replace('src="http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js',
+                    'src="/forward?site=%s&url=http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js' % self.site)
 
 
 class YoutubeWebParser(WebParser):

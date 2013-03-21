@@ -49,6 +49,13 @@ websites = {
         "icon": "http://s.yytcdn.com/favicon.ico",
         "info": "Nothing"
     },
+    "kankan": {
+        "title": "迅雷看看",
+        "url": "http://www.kankan.com",
+        "parser": KankanWebParser,
+        "icon": "http://www.kankan.com/favicon.ico",
+        "info": "Nothing"
+    },
     "youtube": {
         "title": "Youtube",
         "url": "http://www.youtube.com",
