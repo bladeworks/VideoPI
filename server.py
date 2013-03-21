@@ -504,6 +504,6 @@ if currentPlatform == 'Darwin':
 else:
     try:
         os.mkfifo('omxpipe')
-    except IOError:
+    except OSError:
         pass
     run(host='0.0.0.0', port=80, reloader=True)
