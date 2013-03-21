@@ -265,8 +265,35 @@ def executeCmdForMac(templateStr, params={}):
 
 def _play_url(url, format=None, dbid=None):
     logging.debug("_play_url %s", url)
+    global currentVideo
     parser = websites[current_website]['parser'](url, format)
     parseResult = parser.parse()
+    if currentVideo and currentVideo.allRelatedVideo:
+        relatedUrls = [v['url'] for v in currentVideo.allRelatedVideo]
+        if (currentVideo.realUrl in relatedUrls) and (url in relatedUrls):
+            idx = relatedUrls.index(url)
+            # Don't parse the file
+            allRelatedVideo = []
+            for v in currentVideo.allRelatedVideo:
+                v['current'] = False
+                if v['url'] == url:
+                    v['current'] = True
+                allRelatedVideo.append(v)
+            previousVideo, nextVideo = None, None
+            if idx > 0:
+                previousVideo = allRelatedVideo[idx - 1]['url']
+            if idx < (len(allRelatedVideo) - 1):
+                nextVideo = allRelatedVideo[idx + 1]['url']
+            newCurrentVideo = Video(currentVideo.allRelatedVideo[idx]['title'], currentVideo.url, url, 0, current_website,
+                                    availableFormat=currentVideo.availableFormat, currentFormat=format,
+                                    allRelatedVideo=allRelatedVideo, previousVideo=previousVideo,
+                                    nextVideo=nextVideo)
+            logging.debug("newCurrentVideo = %s", newCurrentVideo)
+            currentVideo = newCurrentVideo
+            if dbid:
+                currentVideo.dbid = dbid
+            logging.debug("currentVideo = %s", currentVideo)
+            return play_url()
     if isinstance(parseResult, Video):
         global currentVideo
         currentVideo = parseResult
@@ -393,20 +420,20 @@ def goto(where, fromPos=-1):
 
 @route('/forward')
 def forward():
-    global vid, title, current_website
+    global vid, title, current_website, currentVideo
+    format = None
     if 'site' in request.query:
         current_website = request.query.site
-    format = None
+    if 'format' in request.query:
+        format = int(request.query.format)
+        logging.info("Forwarding to %s", url)
+    dbid = None
+    if 'dbid' in request.query:
+        dbid = request.query.dbid
     url = request.query.url
     if current_website and url.startswith('/'):
         url = websites[current_website]['url'] + url
     logging.debug("forward to url: %s", url)
-    dbid = None
-    if 'format' in request.query:
-        format = int(request.query.format)
-        logging.info("Forwarding to %s", url)
-    if 'dbid' in request.query:
-        dbid = request.query.dbid
     if current_website == 'youtube' and 'search_query' in request.query:
         url = "%s?%s" % ('http://www.youtube.com/results', request.query_string)
         logging.debug("The url for youtube search is: %s", url)
