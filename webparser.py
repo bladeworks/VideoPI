@@ -236,9 +236,9 @@ class WebParser:
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
         if not "解析失败" in responseString:
             self.availableFormat.append(1)
-        if "高清版解析" in responseString:
+        if "format=high" in responseString:
             self.availableFormat.append(2)
-        if "超清版解析" in responseString:
+        if "format=super" in responseString:
             self.availableFormat.append(3)
 
     def getM3UFromFlvcd(self):
