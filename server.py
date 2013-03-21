@@ -487,7 +487,7 @@ def error404(error):
 
 @error(500)
 def error500(error):
-    return "Exception: %s\nDetails: %s" % (error.exception, error.traceback)
+    return ("Exception: %s\nDetails: %s" % (error.exception, error.traceback)).replace('\n', '<br>')
 
 import bottle
 bottle.debug = True

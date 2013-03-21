@@ -600,7 +600,7 @@ class KankanWebParser(WebParser):
                 subids_list = subids.split(',')
                 subnames_list = [v[1:-1] for v in subnames.split(',')]
                 current = False
-                if len(subids_list > 1) and subid:
+                if len(subids_list) > 1 and subid:
                     for idx, sid in enumerate(subids_list):
                         url = self.url.replace(subid, sid)
                         if current and not nextVideo:
