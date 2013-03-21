@@ -587,7 +587,7 @@ class KankanWebParser(WebParser):
     def parseVideo(self):
         logging.info("parseVideo %s", self.url)
         subid = self.parseField(self.kankan_subid_pattern, self.url, "subid")
-        responseString = self.fetchWeb(self.url).decode('gbk').encode('utf8')
+        responseString = self.fetchWeb(self.url).decode('gbk', 'ignore').encode('utf8')
         realUrl = self.getVideoUrl()
         title = self.parseField(self.kankan_movietitle_pattern, responseString, "movietitle")
         duration = self.parseField(self.kankan_duration_pattern, responseString, "duration")
