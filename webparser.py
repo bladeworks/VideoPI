@@ -600,19 +600,20 @@ class KankanWebParser(WebParser):
                 subids_list = subids.split(',')
                 subnames_list = [v[1:-1] for v in subnames.split(',')]
                 current = False
-                for idx, sid in enumerate(subids_list):
-                    url = self.url.replace(subid, sid)
-                    if current and not nextVideo:
-                        nextVideo = url
-                    t = subnames_list[idx]
-                    if sid == subid:
-                        allRelatedVideo.append({'title': t, 'url': url, 'current': True})
-                        current = True
-                        title += " " + t
-                    else:
-                        allRelatedVideo.append({'title': t, 'url': url, 'current': False})
-                    if not current:
-                        previousVideo = url
+                if len(subids_list > 1) and subid:
+                    for idx, sid in enumerate(subids_list):
+                        url = self.url.replace(subid, sid)
+                        if current and not nextVideo:
+                            nextVideo = url
+                        t = subnames_list[idx]
+                        if sid == subid:
+                            allRelatedVideo.append({'title': t, 'url': url, 'current': True})
+                            current = True
+                            title += " " + t
+                        else:
+                            allRelatedVideo.append({'title': t, 'url': url, 'current': False})
+                        if not current:
+                            previousVideo = url
         sections = []
         return Video(title, self.url, realUrl, duration, self.site,
                      availableFormat=self.availableFormat, currentFormat=self.format,
