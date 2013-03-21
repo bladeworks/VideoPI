@@ -69,7 +69,7 @@ class Video:
                                  stderr=subprocess.STDOUT)
             output = p.stdout.read()
             logging.debug('output = %s', output)
-            r = self.duration_pattern.search(str)
+            r = self.duration_pattern.search(output)
             s = None
             if r:
                 s = r.group('duration')
