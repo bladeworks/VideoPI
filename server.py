@@ -7,6 +7,7 @@ from string import Template
 import subprocess
 import platform
 import sys
+import os
 import time
 import urllib
 from urlparse import urlparse
@@ -71,6 +72,7 @@ currentPlatform = platform.system()
 currentPlayerApp = None
 
 player = None
+downloader = None
 playThread = None
 playQueue = Queue()
 
@@ -177,14 +179,15 @@ def fillQueue(urls=[]):
 
 
 def play_list():
-    global player, playQueue, currentVideo
+    global player, playQueue, currentVideo, downloader
     while True:
         v = playQueue.get()
         logging.info("Play %s", v)
         if v.startswith('next:'):
             _play_url(v.replace('next:', ''))
         else:
-            player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
+            downloader = subprocess.Popen(["wget", v.strip(), "-O", "omxpipe"])
+            player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
             time.sleep(1)
@@ -193,11 +196,15 @@ def play_list():
 
 
 def terminatePlayer():
-    global player
+    global player, downloader
     if player and isProcessAlive(player):
         logging.warn("Terminate the previous player")
         player.terminate()
         player = None
+    if downloader and isProcessAlive(downloader):
+        logging.warn("Terminate the previous downloader")
+        downloader.terminate()
+        downloader = None
 
 
 def play_url(where=0):
@@ -495,4 +502,8 @@ bottle.debug = True
 if currentPlatform == 'Darwin':
     run(host='0.0.0.0', port=8000, reloader=True)
 else:
+    try:
+        os.mkfifo('omxpipe')
+    except IOError:
+        pass
     run(host='0.0.0.0', port=80, reloader=True)
