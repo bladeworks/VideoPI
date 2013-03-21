@@ -593,7 +593,6 @@ class KankanWebParser(WebParser):
         duration = self.parseField(self.kankan_duration_pattern, responseString, "duration")
         previousVideo, nextVideo, allRelatedVideo = None, None, []
         r = self.kankan_subids_subnames_pattern.search(responseString)
-        print title
         if r:
             subids = r.group('subids')
             subnames = r.group('subnames')
@@ -615,7 +614,6 @@ class KankanWebParser(WebParser):
                     if not current:
                         previousVideo = url
         sections = []
-        print title
         return Video(title, self.url, realUrl, duration, self.site,
                      availableFormat=self.availableFormat, currentFormat=self.format,
                      previousVideo=previousVideo, nextVideo=nextVideo,

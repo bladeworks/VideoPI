@@ -484,6 +484,11 @@ def error404(error):
     response.set_header('location', redirectTo)
     response.status = 303
 
+
+@error(500)
+def error500(error):
+    return "Exception: %s\nDetails: %s" % (error.exception, error.traceback)
+
 import bottle
 bottle.debug = True
 
