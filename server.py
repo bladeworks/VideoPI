@@ -266,8 +266,6 @@ def executeCmdForMac(templateStr, params={}):
 def _play_url(url, format=None, dbid=None):
     logging.debug("_play_url %s", url)
     global currentVideo
-    parser = websites[current_website]['parser'](url, format)
-    parseResult = parser.parse()
     if currentVideo and currentVideo.allRelatedVideo:
         relatedUrls = [v['url'] for v in currentVideo.allRelatedVideo]
         if (currentVideo.realUrl in relatedUrls) and (url in relatedUrls):
@@ -294,8 +292,9 @@ def _play_url(url, format=None, dbid=None):
                 currentVideo.dbid = dbid
             logging.debug("currentVideo = %s", currentVideo)
             return play_url()
+    parser = websites[current_website]['parser'](url, format)
+    parseResult = parser.parse()
     if isinstance(parseResult, Video):
-        global currentVideo
         currentVideo = parseResult
         logging.info('currentVideo = %s', str(currentVideo))
         if dbid:
