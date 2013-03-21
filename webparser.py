@@ -7,6 +7,7 @@ import json
 import logging
 import subprocess
 import time
+import sys
 from urlparse import urlparse
 from struct import unpack
 
@@ -77,7 +78,8 @@ class Video:
             duration += int(ts[1]) * 60
             duration += int(ts[2])
         except:
-            pass
+            e = sys.exc_info()[0]
+            logging.error("Exception: %s", e)
         logging.info("Get duration with ffmpeg return: %s", duration)
         return duration
 
@@ -116,7 +118,7 @@ class Video:
         return (None, None)
 
     def __str__(self):
-        return "url=%s, realurl=%s, duration=%s, progress=%s, site=%s, typeid=%s, \
+        return "url=%s, realUrl=%s, duration=%s, progress=%s, site=%s, typeid=%s, \
                dbid=%s, availableFormat=%s, currentFormat=%s, sections=%s, allRelatedVideo=%s, \
                previousVideo=%s, nextVideo=%s" % \
                (self.url, self.realUrl, self.duration, self.progress, self.site, self.typeid,
