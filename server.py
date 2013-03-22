@@ -186,7 +186,7 @@ def play_list():
         if v.startswith('next:'):
             _play_url(v.replace('next:', ''))
         else:
-            downloader = subprocess.Popen(["wget", v.strip(), "-O", "omxpipe"])
+            downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
             player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
