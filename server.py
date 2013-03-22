@@ -55,7 +55,8 @@ websites = {
         "url": "http://www.kankan.com",
         "parser": KankanWebParser,
         "icon": "http://www.kankan.com/favicon.ico",
-        "info": "Nothing"
+        "info": "Nothing",
+        "externaldownload": True
     },
     "youtube": {
         "title": "Youtube",
@@ -186,9 +187,14 @@ def play_list():
         if v.startswith('next:'):
             _play_url(v.replace('next:', ''))
         else:
-            downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
-            player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
+                downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
+                player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
+                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
+                player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
+                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
             time.sleep(1)
             if currentVideo and (not currentVideo.paused):
