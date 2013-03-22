@@ -188,11 +188,11 @@ def play_list():
             _play_url(v.replace('next:', ''))
         else:
             if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
+                logging.info("Use external download tool")
                 downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
                 player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
-                downloader = subprocess.Popen(["curl", v.strip(), "-o", "omxpipe", "--stderr", "download.log"])
                 player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while isProcessAlive(player):
