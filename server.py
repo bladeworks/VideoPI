@@ -445,11 +445,11 @@ def forward():
         current_website = request.query.site
     if 'format' in request.query:
         format = int(request.query.format)
-        logging.info("Forwarding to %s", url)
     dbid = None
     if 'dbid' in request.query:
         dbid = request.query.dbid
     url = request.query.url
+    logging.info("Forwarding to %s", url)
     if current_website and url.startswith('/'):
         url = websites[current_website]['url'] + url
     logging.debug("forward to url: %s", url)
