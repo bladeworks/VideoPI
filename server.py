@@ -77,6 +77,8 @@ downloader = None
 playThread = None
 playQueue = Queue()
 
+experiment = True
+
 actionToKey = {
     'pause': 'p',
     'stop': 'q',
@@ -235,12 +237,34 @@ def play_url(where=0):
                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             # Because omxplayer doesn't support list we have to play one by one.
-            if currentVideo.progress > 0:
-                result = goto(currentVideo.progress, 0)
-                if result != 'OK':
-                    fillQueue()
+            sections = parseM3U()
+            if experiment and len(sections) > 1:
+                exec_filename = "merge.sh"
+                try:
+                    os.remove(exec_filename)
+                except OSError:
+                    pass
+                lines = []
+                p_list = []
+                for idx, v in enumerate(sections):
+                    pname = "p%s" % idx
+                    newFifo(pname)
+                    lines.append("ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> /dev/null &\n" % (v, pname))
+                    p_list.append(pname)
+                newFifo("all.ts")
+                lines.append('ffmpeg -f mpegts -i "contact:%s" -c copy -y -f mpegts all.ts\n' % "|".join(p_list))
+                with open(exec_filename, 'wb') as f:
+                    f.writelines(lines)
+                global downloader
+                downloader = subprocess.Popen(["sh", "merge.sh"])
+                fillQueue(url=["all.ts"])
             else:
-                fillQueue()
+                if currentVideo.progress > 0:
+                    result = goto(currentVideo.progress, 0)
+                    if result != 'OK':
+                        fillQueue()
+                else:
+                    fillQueue()
     else:
         if currentPlatform == 'Darwin':
             currentPlayerApp = 'MPlayerX'
@@ -505,11 +529,16 @@ def error500(error):
 import bottle
 bottle.debug = True
 
+
+def newFifo(filename):
+    try:
+        os.mkfifo(filename)
+    except OSError:
+        pass
+
+
 if currentPlatform == 'Darwin':
     run(host='0.0.0.0', port=8000, reloader=True)
 else:
-    try:
-        os.mkfifo('omxpipe')
-    except OSError:
-        pass
+    newFifo('omxpipe')
     run(host='0.0.0.0', port=80, reloader=True)
