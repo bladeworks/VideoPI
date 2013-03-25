@@ -257,7 +257,7 @@ def play_url(where=0):
                     f.writelines(lines)
                 global downloader
                 downloader = subprocess.Popen(["sh", "merge.sh"])
-                fillQueue(url=["all.ts"])
+                fillQueue(urls=["all.ts"])
             else:
                 if currentVideo.progress > 0:
                     result = goto(currentVideo.progress, 0)
