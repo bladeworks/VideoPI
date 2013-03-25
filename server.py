@@ -213,6 +213,7 @@ def terminatePlayer():
         logging.warn("Terminate the previous downloader")
         downloader.terminate()
         downloader = None
+        subprocess.call(["killall", "-9", "ffmpeg"])
 
 
 def play_url(where=0):
