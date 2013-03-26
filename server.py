@@ -250,9 +250,8 @@ def play_url(where=0):
                 for idx, v in enumerate(sections):
                     pname = "p%s" % idx
                     newFifo(pname)
-                    lines.append("ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -flags -global_header -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
+                    lines.append("ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
                     p_list.append(pname)
-                newFifo("all.ts")
                 lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
                 with open(exec_filename, 'wb') as f:
                     f.writelines(lines)
