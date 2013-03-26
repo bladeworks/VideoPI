@@ -240,6 +240,7 @@ def play_url(where=0):
             # Because omxplayer doesn't support list we have to play one by one.
             sections = parseM3U()
             if experiment and current_website == 'youku' and len(sections) > 1:
+                logging.info("Experiment to merge video for youku")
                 outputFileName = 'all.ts'
                 exec_filename = "merge.sh"
                 try:
@@ -259,7 +260,7 @@ def play_url(where=0):
                     f.writelines(lines)
                 global downloader
                 downloader = subprocess.Popen(["sh", "merge.sh"])
-                timeout = 30
+                timeout = 60
                 while True:
                     if os.path.exists(outputFileName):
                         fillQueue(urls=[outputFileName])
@@ -268,7 +269,7 @@ def play_url(where=0):
                         time.sleep(1)
                         timeout -= 1
                         if timeout == 0:
-                            return "Timeout after 30 seconds."
+                            return "Timeout after 60 seconds."
             else:
                 if currentVideo.progress > 0:
                     result = goto(currentVideo.progress, 0)
