@@ -259,8 +259,16 @@ def play_url(where=0):
                     f.writelines(lines)
                 global downloader
                 downloader = subprocess.Popen(["sh", "merge.sh"])
-                if os.path.exists(outputFileName):
-                    fillQueue(urls=[outputFileName])
+                timeout = 30
+                while True:
+                    if os.path.exists(outputFileName):
+                        fillQueue(urls=[outputFileName])
+                        break
+                    else:
+                        time.sleep(1)
+                        timeout -= 1
+                        if timeout == 0:
+                            return "Timeout after 30 seconds."
             else:
                 if currentVideo.progress > 0:
                     result = goto(currentVideo.progress, 0)
