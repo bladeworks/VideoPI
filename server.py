@@ -269,6 +269,7 @@ def play_url(where=0):
                         time.sleep(1)
                         timeout -= 1
                         if timeout == 0:
+                            terminatePlayer()
                             return "Timeout after 60 seconds."
             else:
                 if currentVideo.progress > 0:
