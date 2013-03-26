@@ -240,9 +240,11 @@ def play_url(where=0):
             # Because omxplayer doesn't support list we have to play one by one.
             sections = parseM3U()
             if experiment and len(sections) > 1:
+                outputFileName = 'all.ts'
                 exec_filename = "merge.sh"
                 try:
                     os.remove(exec_filename)
+                    os.remove(outputFileName)
                 except OSError:
                     pass
                 lines = []
@@ -257,7 +259,8 @@ def play_url(where=0):
                     f.writelines(lines)
                 global downloader
                 downloader = subprocess.Popen(["sh", "merge.sh"])
-                fillQueue(urls=["all.ts"])
+                if os.path.exists(outputFileName):
+                    fillQueue(urls=[outputFileName])
             else:
                 if currentVideo.progress > 0:
                     result = goto(currentVideo.progress, 0)
