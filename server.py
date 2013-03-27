@@ -110,7 +110,7 @@ def play_list():
                     startPlayer(v.strip(), playerOnly=True)
                     timeout -= 1
                     if timeout <= 0:
-                        terminatePlayer()
+                        terminatePlayerAndDownloader()
                         logging.warn("Timeout! Stop the player and downloader")
                         break
                 else:
@@ -119,16 +119,25 @@ def play_list():
 
 
 def terminatePlayer():
-    global player, downloader
+    global player
     if player and isProcessAlive(player):
         logging.warn("Terminate the previous player")
         player.terminate()
         player = None
+
+
+def terminateDownloader():
+    global downloader
     if downloader and isProcessAlive(downloader):
         logging.warn("Terminate the previous downloader")
         downloader.terminate()
         downloader = None
         subprocess.call(["killall", "-9", "ffmpeg"])
+
+
+def terminatePlayerAndDownloader():
+    terminatePlayer()
+    terminateDownloader()
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
@@ -153,9 +162,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
     with open(exec_filename, 'wb') as f:
         f.writelines(lines)
-    global downloader
-    downloader = subprocess.Popen(["sh", exec_filename])
     fillQueue(urls=[outputFileName])
+    global downloader
+    terminateDownloader()
+    downloader = subprocess.Popen(["sh", exec_filename])
     currentVideo.progress = where
 
 
@@ -163,7 +173,7 @@ def play_url(where=0):
     global player, currentVideo, currentPlayerApp, playQueue, paused, progress
     clearQueue()
     db_writeHistory(currentVideo)
-    terminatePlayer()
+    terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
     logging.debug("currentVideo = %s", currentVideo)
     if currentPlatform != 'Darwin':
@@ -324,7 +334,7 @@ def control(action):
                     db_writeHistory(currentVideo)
                 player = None
                 currentVideo = None
-                terminatePlayer()
+                terminatePlayerAndDownloader()
             if action == "pause":
                 currentVideo.paused = (not currentVideo.paused)
             feedback = "OK"
@@ -332,7 +342,7 @@ def control(action):
             feedback = "Not implemented action: " + action
     else:
         if downloader:
-            terminatePlayer()
+            terminatePlayerAndDownloader()
         feedback = "Sorry but I can't find any player running."
     return feedback
 
@@ -399,7 +409,7 @@ def goto(where, fromPos=-1):
                 currentVideo.progress = new_progress
                 clearQueue()
                 fillQueue(sections[c_idx:])
-                terminatePlayer()
+                terminatePlayerAndDownloader()
                 return "OK"
 
 
