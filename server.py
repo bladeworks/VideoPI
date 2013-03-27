@@ -107,6 +107,33 @@ def terminatePlayer():
         subprocess.call(["killall", "-9", "ffmpeg"])
 
 
+def merge_play(sections, where=0, start_idx=0, delta=0):
+    logging.info("Merge and play")
+    outputFileName = 'all.ts'
+    newFifo(outputFileName)
+    exec_filename = "merge.sh"
+    try:
+        os.remove(exec_filename)
+    except OSError:
+        pass
+    lines = ["#%s\n" % currentVideo.url]
+    p_list = []
+    for idx, v in enumerate(sections[start_idx:]):
+        pname = "p%s" % idx
+        newFifo(pname)
+        if idx == 0 and delta > 0:
+            lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -ss %s -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, delta, pname, pname))
+        else:
+            lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
+        p_list.append(pname)
+    lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
+    with open(exec_filename, 'wb') as f:
+        f.writelines(lines)
+    global downloader
+    downloader = subprocess.Popen(["sh", exec_filename])
+    fillQueue(urls=[outputFileName])
+
+
 def play_url(where=0):
     global player, currentVideo, currentPlayerApp, playQueue, paused, progress
     clearQueue()
@@ -131,37 +158,12 @@ def play_url(where=0):
             # Because omxplayer doesn't support list we have to play one by one.
             sections = parseM3U()
             if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
-                logging.info("Experiment to merge video for youku")
-                outputFileName = 'all.ts'
-                exec_filename = "merge.sh"
-                try:
-                    os.remove(exec_filename)
-                    os.remove(outputFileName)
-                except OSError:
-                    pass
-                lines = ["#%s\n" % currentVideo.url]
-                p_list = []
-                for idx, v in enumerate(sections):
-                    pname = "p%s" % idx
-                    newFifo(pname)
-                    lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
-                    p_list.append(pname)
-                lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
-                with open(exec_filename, 'wb') as f:
-                    f.writelines(lines)
-                global downloader
-                downloader = subprocess.Popen(["sh", "merge.sh"])
-                timeout = 60
-                while True:
-                    if os.path.exists(outputFileName):
-                        fillQueue(urls=[outputFileName])
-                        break
-                    else:
-                        time.sleep(1)
-                        timeout -= 1
-                        if timeout == 0:
-                            terminatePlayer()
-                            return "Timeout after 60 seconds."
+                if currentVideo.progress > 0:
+                    result = goto(currentVideo.progress, 0)
+                    if result != 'OK':
+                        merge_play(sections)
+                else:
+                    merge_play(sections)
             else:
                 if currentVideo.progress > 0:
                     result = goto(currentVideo.progress, 0)
@@ -359,13 +361,18 @@ def goto(where, fromPos=-1):
     currentIdx = 0
     if fromPos == -1:
         currentIdx = currentVideo.getCurrentIdx()
+    sections = parseM3U()
     if new_progress is not None and c_idx is not None:
-        if c_idx != currentIdx:
-            currentVideo.progress = new_progress
-            clearQueue()
-            fillQueue(parseM3U()[c_idx:])
-            terminatePlayer()
-            return "OK"
+        if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
+            merge_play(sections, where=where, start_idx=c_idx, delta=int(where - new_progress))
+            return 'OK'
+        else:
+            if c_idx != currentIdx:
+                currentVideo.progress = new_progress
+                clearQueue()
+                fillQueue(sections[c_idx:])
+                terminatePlayer()
+                return "OK"
 
 
 @route('/forward')
