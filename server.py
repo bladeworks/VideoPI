@@ -282,7 +282,6 @@ def control(action):
     feedback = ""
     if action == "stop":
         clearQueue()
-        terminatePlayer()
     if player and isProcessAlive(player):
         if (currentPlatform != 'Darwin' and action in actionToKey) or\
                 (currentPlatform == 'Darwin' and action in actionToKeyMac[currentPlayerApp]):
@@ -298,12 +297,15 @@ def control(action):
                     db_writeHistory(currentVideo)
                 player = None
                 currentVideo = None
+                terminatePlayer()
             if action == "pause":
                 currentVideo.paused = (not currentVideo.paused)
             feedback = "OK"
         else:
             feedback = "Not implemented action: " + action
     else:
+        if downloader:
+            terminatePlayer()
         feedback = "Sorry but I can't find any player running."
     return feedback
 
