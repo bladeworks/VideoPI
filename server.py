@@ -282,6 +282,7 @@ def control(action):
     feedback = ""
     if action == "stop":
         clearQueue()
+        terminatePlayer()
     if player and isProcessAlive(player):
         if (currentPlatform != 'Darwin' and action in actionToKey) or\
                 (currentPlatform == 'Darwin' and action in actionToKeyMac[currentPlayerApp]):
