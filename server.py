@@ -13,7 +13,7 @@ import urllib
 from urlparse import urlparse
 from threading import Thread
 from Queue import Queue
-from Contents import *
+from Constants import *
 
 current_website = None
 currentVideo = None
