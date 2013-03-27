@@ -73,15 +73,15 @@ def fillQueue(urls=[]):
 
 
 def startPlayer(url, playerOnly=False):
-    global player, downloader
+    global player, downloader, current_website
     if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
         logging.info("Use external download tool")
         if not playerOnly:
-            downloader = subprocess.Popen(["wget", v.strip(), "-O", "omxpipe", "-o", "download.log"])
+            downloader = subprocess.Popen(["wget", url, "-O", "omxpipe", "-o", "download.log"])
         player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
+        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", url, '--vol', '-1000'],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
