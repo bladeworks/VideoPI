@@ -154,12 +154,12 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     for idx, v in enumerate(sections[start_idx:]):
         pname = "p%s" % idx
         newFifo(pname)
-        if idx == 0 and delta > 0:
-            lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -ss %s -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, delta, pname, pname))
-        else:
-            lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
+        lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
         p_list.append(pname)
-    lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
+    if delta > 0:
+        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s all.ts 2> merge.log\n' % ("|".join(p_list), delta))
+    else:
+        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
     with open(exec_filename, 'wb') as f:
         f.writelines(lines)
     fillQueue(urls=[outputFileName])
