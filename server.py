@@ -361,10 +361,11 @@ def goto(where, fromPos=-1):
     currentIdx = 0
     if fromPos == -1:
         currentIdx = currentVideo.getCurrentIdx()
+        logging.debug("currentIdx = %s", currentIdx)
     sections = parseM3U()
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
-            merge_play(sections, where=where, start_idx=c_idx, delta=int(where - new_progress))
+            merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
             return 'OK'
         else:
             if c_idx != currentIdx:
