@@ -72,6 +72,19 @@ def fillQueue(urls=[]):
         playQueue.put("next:%s" % currentVideo.nextVideo)
 
 
+def startPlayer(url, playerOnly=False):
+    global player, downloader
+    if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
+        logging.info("Use external download tool")
+        if not playerOnly:
+            downloader = subprocess.Popen(["wget", v.strip(), "-O", "omxpipe", "-o", "download.log"])
+        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
 def play_list():
     global player, playQueue, currentVideo, downloader
     while True:
@@ -80,18 +93,19 @@ def play_list():
         if v.startswith('next:'):
             _play_url(v.replace('next:', ''))
         else:
-            if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
-                logging.info("Use external download tool")
-                downloader = subprocess.Popen(["wget", v.strip(), "-O", "omxpipe", "-o", "download.log"])
-                player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
-                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", v.strip(), '--vol', '-1000'],
-                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        while isProcessAlive(player):
-            time.sleep(1)
-            if currentVideo and (not currentVideo.paused):
-                currentVideo.progress += 1
+            startPlayer(v.strip())
+        timeout = 10
+        while True:
+            if isProcessAlive(player):
+                time.sleep(1)
+                if currentVideo and (not currentVideo.paused):
+                    currentVideo.progress += 1
+            if isProcessAlive(downloader) and (not isProcessAlive(player)):
+                startPlayer(v.strip(), playerOnly=True)
+                timeout -= 1
+                if timeout <= 0:
+                    terminatePlayer()
+                    break
 
 
 def terminatePlayer():
