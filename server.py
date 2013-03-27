@@ -89,6 +89,7 @@ def startPlayer(url, playerOnly=False):
 def play_list():
     global player, playQueue, currentVideo, downloader
     while True:
+        logging.debug("F true")
         v = playQueue.get()
         logging.info("Play %s", v)
         if v.startswith('next:'):
@@ -97,6 +98,7 @@ def play_list():
             startPlayer(v.strip())
         timeout = 10
         while True:
+            logging.debug("S true")
             if isProcessAlive(player):
                 time.sleep(1)
                 if currentVideo and (not currentVideo.paused):
@@ -112,6 +114,7 @@ def play_list():
                         logging.warn("Timeout! Stop the player and downloader")
                         break
                 else:
+                    logging.warn("Break")
                     break
 
 
