@@ -132,6 +132,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     global downloader
     downloader = subprocess.Popen(["sh", exec_filename])
     fillQueue(urls=[outputFileName])
+    currentVideo.progress = where
 
 
 def play_url(where=0):
