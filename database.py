@@ -25,6 +25,7 @@ def db_writeHistory(video):
     con = sqlite3.connect('media.db')
     logging.debug("Write: %s", video)
     with con:
+        cur = con.cursor()
         if video.dbid:
             if video.progress > 0:
                 logging.debug("set last_play_pos = %s for %s", video.progress, video.dbid)
@@ -36,10 +37,11 @@ def db_writeHistory(video):
                     UPDATE media SET last_play_date = ? WHERE id = ?
                     """, (int(time.time()), video.dbid,))
         else:
-            con.execute("""
+            cur.execute("""
                 INSERT INTO media (title, url, last_play_date, last_play_pos, duration, site)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """, (buffer(video.title), buffer(video.url), int(time.time()), 0, video.duration, video.site))
+            video.dbid = cur.lastrowid
         con.commit()
 
 
