@@ -166,7 +166,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     global downloader
     terminateDownloader()
     downloader = subprocess.Popen(["sh", exec_filename])
-    currentVideo.progress = where
+    currentVideo.progress = int(where)
 
 
 def play_url(where=0):
@@ -400,18 +400,9 @@ def goto(where, fromPos=-1):
     sections = parseM3U()
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
-            global playThread
-            if not playThread or (not playThread.isAlive()):
-                logging.debug("Thread is not running b4 clear")
             clearQueue()
-            if not playThread or (not playThread.isAlive()):
-                logging.debug("Thread is not running aft clear")
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
-            if not playThread or (not playThread.isAlive()):
-                logging.debug("Thread is not running aft merge")
             terminatePlayer()
-            if not playThread or (not playThread.isAlive()):
-                logging.debug("Thread is not running aft term player")
             return 'OK'
         else:
             if c_idx != currentIdx:
