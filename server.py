@@ -139,7 +139,7 @@ def play_url(where=0):
                     os.remove(outputFileName)
                 except OSError:
                     pass
-                lines = ["#%s" % currentVideo.url]
+                lines = ["#%s\n" % currentVideo.url]
                 p_list = []
                 for idx, v in enumerate(sections):
                     pname = "p%s" % idx
