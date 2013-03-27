@@ -73,6 +73,7 @@ def fillQueue(urls=[]):
 
 
 def startPlayer(url, playerOnly=False):
+    logging.info("Start player for %s", url)
     global player, downloader, current_website
     if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
         logging.info("Use external download tool")
@@ -100,11 +101,17 @@ def play_list():
                 time.sleep(1)
                 if currentVideo and (not currentVideo.paused):
                     currentVideo.progress += 1
-            if isProcessAlive(downloader) and (not isProcessAlive(player)):
-                startPlayer(v.strip(), playerOnly=True)
-                timeout -= 1
-                if timeout <= 0:
-                    terminatePlayer()
+            else:
+                if isProcessAlive(downloader) and (not isProcessAlive(player)):
+                    time.sleep(1)
+                    logging.info("Restart the player")
+                    startPlayer(v.strip(), playerOnly=True)
+                    timeout -= 1
+                    if timeout <= 0:
+                        terminatePlayer()
+                        logging.warn("Timeout! Stop the player and downloader")
+                        break
+                else:
                     break
 
 
