@@ -108,14 +108,14 @@ def terminatePlayer():
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
-    logging.info("Merge and play")
+    logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
     outputFileName = 'all.ts'
     newFifo(outputFileName)
     exec_filename = "merge.sh"
     try:
         os.remove(exec_filename)
-    except OSError:
-        pass
+    except OSError as e:
+        logging.error("Error when delete file: %s", e.strerror)
     lines = ["#%s\n" % currentVideo.url]
     p_list = []
     for idx, v in enumerate(sections[start_idx:]):
@@ -365,6 +365,8 @@ def goto(where, fromPos=-1):
     sections = parseM3U()
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
+            clearQueue()
+            terminatePlayer()
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
             return 'OK'
         else:
