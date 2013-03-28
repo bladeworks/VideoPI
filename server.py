@@ -101,7 +101,7 @@ def play_list():
                 time.sleep(1)
                 try:
                     if currentVideo:
-                        currentVideo.progress = currentVideo.start_pos + int(player.position / 1000000)
+                        currentVideo.progress = int(currentVideo.start_pos) + int(player.position / 1000000)
                         if int(currentVideo.progress) % 30 == 0 and int(currentVideo.progress) > 0:
                             db_writeHistory(currentVideo)
                 except:
