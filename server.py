@@ -81,7 +81,7 @@ def startPlayer(url, playerOnly=False):
             downloader = subprocess.Popen(["wget", url, "-O", "/tmp/omxpipe", "-o", "download.log"])
         url = "/tmp/omxpipe"
     try:
-        player = OMXPlayer(url, args="-o hdmi", start_playback=True)
+        player = OMXPlayer(url, args="-o hdmi --video_fifo 20 --video_queue 20", start_playback=True)
     except:
         logging.exception("Got exception")
 
