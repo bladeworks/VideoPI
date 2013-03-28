@@ -3,7 +3,6 @@
 from bottle import route, run, template, request, static_file, post, get, redirect, error, response
 from database import *
 from webparser import *
-from string import Template
 import subprocess
 import platform
 import sys
@@ -14,6 +13,7 @@ from urlparse import urlparse
 from threading import Thread
 from Queue import Queue
 from Constants import *
+from pyomxplayer import OMXPlayer
 
 current_website = None
 currentVideo = None
@@ -78,12 +78,12 @@ def startPlayer(url, playerOnly=False):
     if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
         logging.info("Use external download tool")
         if not playerOnly:
-            downloader = subprocess.Popen(["wget", url, "-O", "omxpipe", "-o", "download.log"])
-        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", "omxpipe", '--vol', '-1000'],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        player = subprocess.Popen(["omxplayer", "-p", "-o", "hdmi", url, '--vol', '-1000'],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            downloader = subprocess.Popen(["wget", url, "-O", "/tmp/omxpipe", "-o", "download.log"])
+        url = "/tmp/omxpipe"
+    try:
+        player = OMXPlayer(url, args="-o hdmi", start_playback=True)
+    except:
+        logging.exception("Got exception")
 
 
 def play_list():
@@ -97,14 +97,17 @@ def play_list():
             startPlayer(v.strip())
         timeout = 10
         while True:
-            if isProcessAlive(player):
+            if player and player.isalive():
                 time.sleep(1)
-                if currentVideo and (not currentVideo.paused):
-                    currentVideo.progress += 1
-                    if currentVideo.progress % 30 == 0:
-                        db_writeHistory(currentVideo)
+                try:
+                    if currentVideo:
+                        currentVideo.progress = currentVideo.start_pos + int(player.position / 1000000)
+                        if int(currentVideo.progress) % 30 == 0 and int(currentVideo.progress) > 0:
+                            db_writeHistory(currentVideo)
+                except:
+                    logging.exception("Got exception")
             else:
-                if isProcessAlive(downloader) and (not isProcessAlive(player)):
+                if isProcessAlive(downloader):
                     time.sleep(1)
                     logging.info("Restart the player")
                     startPlayer(v.strip(), playerOnly=True)
@@ -114,14 +117,15 @@ def play_list():
                         logging.warn("Timeout! Stop the player and downloader")
                         break
                 else:
+                    logging.info("Break")
                     break
 
 
 def terminatePlayer():
     global player
-    if player and isProcessAlive(player):
+    if player and player.isalive():
         logging.warn("Terminate the previous player")
-        player.terminate()
+        player.stop()
         player = None
 
 
@@ -141,9 +145,9 @@ def terminatePlayerAndDownloader():
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
-    outputFileName = 'all.ts'
+    outputFileName = '/tmp/all.ts'
     newFifo(outputFileName)
-    exec_filename = "merge.sh"
+    exec_filename = "/tmp/merge.sh"
     try:
         os.remove(exec_filename)
     except OSError as e:
@@ -151,100 +155,55 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     lines = ["#%s\n" % currentVideo.url]
     p_list = []
     for idx, v in enumerate(sections[start_idx:]):
-        pname = "p%s" % idx
+        pname = "/tmp/p%s" % idx
         newFifo(pname)
         lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
-        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s all.ts 2> merge.log\n' % ("|".join(p_list), delta))
+        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % ("|".join(p_list), delta, outputFileName))
     else:
-        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts all.ts 2> merge.log\n' % "|".join(p_list))
+        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % ("|".join(p_list), outputFileName))
     with open(exec_filename, 'wb') as f:
         f.writelines(lines)
     fillQueue(urls=[outputFileName])
     global downloader
     terminateDownloader()
     downloader = subprocess.Popen(["sh", exec_filename])
-    currentVideo.progress = int(where)
 
 
-def play_url(where=0):
-    global player, currentVideo, currentPlayerApp, playQueue, paused, progress
+def play_url():
+    global player, currentVideo, currentPlayerApp, playQueue, progress
     clearQueue()
     db_writeHistory(currentVideo)
     terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
     logging.debug("currentVideo = %s", currentVideo)
-    if currentPlatform != 'Darwin':
-        global playThread
-        if not playThread or (not playThread.isAlive()):
-            logging.debug("New a thred to play the list.")
-            playThread = Thread(target=play_list)
-            playThread.start()
+    global playThread
+    if not playThread or (not playThread.isAlive()):
+        logging.debug("New a thred to play the list.")
+        playThread = Thread(target=play_list)
+        playThread.start()
     if currentVideo.realUrl == 'playlist.m3u':
-        if currentPlatform == 'Darwin':
-            currentPlayerApp = 'VLC'
-            player = subprocess.Popen(["/Applications/VLC.app/Contents/MacOS/VLC",
-                                      #currentVideo.realUrl, '--fullscreen'],
-                                      currentVideo.realUrl],
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            # Because omxplayer doesn't support list we have to play one by one.
-            sections = parseM3U()
-            if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
-                if currentVideo.progress > 0:
-                    result = goto(currentVideo.progress, 0)
-                    if result != 'OK':
-                        merge_play(sections)
-                else:
+        # Because omxplayer doesn't support list we have to play one by one.
+        sections = parseM3U()
+        if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
+            if currentVideo.progress > advanceTime:
+                result = goto(currentVideo.progress - advanceTime, 0)
+                if result != 'OK':
                     merge_play(sections)
             else:
-                if currentVideo.progress > 0:
-                    result = goto(currentVideo.progress, 0)
-                    if result != 'OK':
-                        fillQueue()
-                else:
-                    fillQueue()
-    else:
-        if currentPlatform == 'Darwin':
-            currentPlayerApp = 'MPlayerX'
-            player = subprocess.Popen(["/Applications/MPlayerX.app/Contents/MacOS/MPlayerX", '-url',
-                                      currentVideo.realUrl, "-StartByFullScreen", "YES"],
-                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                merge_play(sections)
         else:
-            fillQueue([currentVideo.realUrl])
-    if currentPlatform == 'Darwin':
-        # Try to send it to the second screen
-        templateStr = """osascript\
- -e "delay 3"\
- -e "tell application \\"$currentPlayerApp\\""\
- -e "set position of window 1 to {1900, 30}"\
- -e "end tell" """
-        executeCmdForMac(templateStr)
+            if currentVideo.progress > advanceTime:
+                result = goto(currentVideo.progress - advanceTime, 0)
+                if result != 'OK':
+                    fillQueue()
+            else:
+                fillQueue()
+    else:
+        fillQueue([currentVideo.realUrl])
     return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
                     history=db_getHistory())
-
-
-def sendKeyForMac(keyString):
-    templateStr = """osascript\
- -e "tell application \\"$currentPlayerApp\\""\
- -e "activate"\
- -e "tell application \\"System Events\\" to tell process \\"$currentPlayerApp\\" to key code $keycode"\
- -e "end tell" """
-    executeCmdForMac(templateStr, params={"keycode": keyString})
-
-
-def executeCmdForMac(templateStr, params={}):
-    s = Template(templateStr)
-    p = {"currentPlayerApp": currentPlayerApp}
-    if params:
-        for k, v in params.iteritems():
-            p[k] = v
-    cmd = s.substitute(p)
-    logging.info("Execuing command: %s", cmd)
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    out, err = p.communicate()
-    logging.debug("out = %s\nerr = %s\nreturnCode = %s", out, err, p.returncode)
 
 
 def _play_url(url, format=None, dbid=None):
@@ -284,7 +243,7 @@ def _play_url(url, format=None, dbid=None):
         if dbid:
             currentVideo.dbid = dbid
             currentVideo.progress = db_getById(int(dbid)).progress
-        return play_url(where=currentVideo.progress)
+        return play_url()
     else:
         logging.info('No video found, return the web page.')
         return parseResult
@@ -292,7 +251,7 @@ def _play_url(url, format=None, dbid=None):
 
 @route('/')
 def index():
-    if not isProcessAlive(player):
+    if not (player and player.isalive()):
         global currentVideo
         currentVideo = None
     return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
@@ -318,25 +277,21 @@ def control(action):
     feedback = ""
     if action == "stop":
         clearQueue()
-    if player and isProcessAlive(player):
-        if (currentPlatform != 'Darwin' and action in actionToKey) or\
-                (currentPlatform == 'Darwin' and action in actionToKeyMac[currentPlayerApp]):
-            if currentPlatform == 'Darwin':
-                logging.info("Send key code: %s", actionToKeyMac[currentPlayerApp][action])
-                sendKeyForMac(actionToKeyMac[currentPlayerApp][action])
-            else:
-                logging.info("Send key code: %s", actionToKey[action])
-                player.stdin.write(actionToKey[action])
-            if action == "stop":
-                if currentVideo.progress > 0:
-                    logging.debug("Write last_play_pos to %s", currentVideo.progress)
-                    db_writeHistory(currentVideo)
-                player = None
-                currentVideo = None
-                terminatePlayerAndDownloader()
-            if action == "pause":
-                currentVideo.paused = (not currentVideo.paused)
-            feedback = "OK"
+    if player and player.isalive():
+        feedback = "OK"
+        if action == "stop":
+            if currentVideo.progress > 0:
+                logging.debug("Write last_play_pos to %s", currentVideo.progress)
+                db_writeHistory(currentVideo)
+            terminatePlayerAndDownloader()
+            player = None
+            currentVideo = None
+        elif action == "pause":
+            player.toggle_pause()
+        elif action == "volup":
+            player.volup()
+        elif action == "voldown":
+            player.voldown()
         else:
             feedback = "Not implemented action: " + action
     else:
@@ -354,13 +309,13 @@ def history():
         responseString += """
                         <li>
                             <a href="/play?id=%s" class="ui-link-inherit" data-ajax="false">
-                                <h3>%s</h3>
-                                <p>总共%s(%s)</p>
+                                <h3>%s(%s)</h3>
+                                <p>总共%s(上次播放到%s)</p>
                             </a>
                             <a href="#" onclick="deleteHistory('%s');return false"></a>
                         </li>
-                        """ % (video.dbid, video.title, video.durationToStr(),
-                               websites[video.site]['title'], video.dbid)
+                        """ % (video.dbid, video.title, websites[video.site]['title'],
+                               video.durationToStr(), Video.formatDuration(video.progress), video.dbid)
     return responseString
 
 
@@ -400,12 +355,13 @@ def goto(where, fromPos=-1):
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
             clearQueue()
+            currentVideo.start_pos = where
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
             terminatePlayer()
             return 'OK'
         else:
             if c_idx != currentIdx:
-                currentVideo.progress = new_progress
+                currentVideo.start_pos = new_progress
                 clearQueue()
                 fillQueue(sections[c_idx:])
                 terminatePlayerAndDownloader()
@@ -488,8 +444,5 @@ def newFifo(filename):
         pass
 
 
-if currentPlatform == 'Darwin':
-    run(host='0.0.0.0', port=8000, reloader=True)
-else:
-    newFifo('omxpipe')
-    run(host='0.0.0.0', port=80, reloader=True)
+newFifo('/tmp/omxpipe')
+run(host='0.0.0.0', port=80, reloader=True)

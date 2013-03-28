@@ -29,7 +29,7 @@ class Video:
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
                  dbid=None, availableFormat=[], currentFormat=None,
                  previousVideo=None, nextVideo=None, allRelatedVideo=[],
-                 progress=0, paused=False, sections=[]):
+                 progress=0, sections=[], start_pos=0):
         self.title = str(title)
         self.url = url
         self.realUrl = realUrl
@@ -43,11 +43,8 @@ class Video:
         self.nextVideo = nextVideo
         self.allRelatedVideo = allRelatedVideo
         self.progress = progress
-        self.paused = paused
         self.sections = sections
-        self.previousSection = None
-        self.nextSection = None
-        self.currentSection = None
+        self.start_pos = start_pos
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)
 

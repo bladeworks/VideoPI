@@ -17,7 +17,7 @@ def db_getHistory():
         data = c.fetchall()
         videos = []
         for d in data:
-            videos.append(Video(str(d['title']), str(d['url']), '', d['duration'], d['site'], dbid=d['id']))
+            videos.append(Video(str(d['title']), str(d['url']), '', d['duration'], d['site'], dbid=d['id'], progress=int(d['last_play_pos'])))
         return videos
 
 

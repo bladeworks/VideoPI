@@ -110,3 +110,5 @@ actionToKeyMac = {
         'fullscreen': '3 using command down',
     }
 }
+
+advanceTime = 30

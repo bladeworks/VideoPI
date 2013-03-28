@@ -127,8 +127,8 @@
 	  				%for h in history:
 	                    <li>
 	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit" data-ajax="false">
-	                            <h3>{{h.title}}</h3>
-	                            <p>总共{{h.durationToStr()}}({{websites[h.site]['title']}})</p>
+	                            <h3>{{h.title}}({{websites[h.site]['title']}})</h3>
+	                            <p>总共{{h.durationToStr()}}(上次播放到{{h.formatDuration(h.progress)}})</p>
 	                        </a>
 	                        <a href="#" onclick="deleteHistory('{{h.dbid}}');return false"></a>
 	                    </li>
