@@ -98,8 +98,7 @@ def play_list():
         else:
             startPlayer(v.strip())
         timeout = 10
-        if not v.startswith('next:'):
-            imgService.begin(LOADING)
+        imgService.begin(LOADING)
         while True:
             if player and player.isalive():
                 time.sleep(1)
@@ -128,7 +127,8 @@ def play_list():
                 else:
                     logging.info("Break")
                     imgService.end()
-                    imgService.begin(FINISHED)
+                    if not v.startswith('next:'):
+                        imgService.begin(FINISHED)
                     break
 
 
