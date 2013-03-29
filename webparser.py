@@ -451,7 +451,9 @@ class YoukuWebParser(WebParser):
             replace('onsubmit="return MiniHeader.dosearch(this);" ', '').\
             replace('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"',
                     'type="submit"').\
-            replace(' id="headq"', '')
+            replace(' id="headq"', '').\
+            replace('http:\/\/v.youku.com\/v_show\/id_',
+                    '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)
 
 
 class WangyiWebParser(WebParser):

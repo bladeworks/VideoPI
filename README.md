@@ -70,7 +70,7 @@ VideoPI是基于bottlepy以及jquerymobile的一个RB的遥控器，可以在电
 * 安装预先需要的软件包（root用户）
    
   ```bash
-  pacman -S python2
+  pacman -S python2 fbv
   ln -s /usr/bin/python2 /usr/bin/python
   cd /tmp
   wget https://pypi.python.org/packages/2.7/s/setuptools/setuptools-0.6c11-py2.7.egg#md5=fe1f997bc722265116870bc7919059ea
