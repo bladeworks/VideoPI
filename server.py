@@ -25,6 +25,7 @@ player = None
 downloader = None
 playThread = None
 playQueue = Queue()
+imgService = ImgService()
 
 import logging
 logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
@@ -97,7 +98,6 @@ def play_list():
         else:
             startPlayer(v.strip())
         timeout = 10
-        imgService = ImgService()
         imgService.begin(LOADING)
         while True:
             if player and player.isalive():
@@ -216,6 +216,7 @@ def play_url():
 
 def _play_url(url, format=None, dbid=None):
     logging.debug("_play_url %s", url)
+    imgService.end()
     global currentVideo
     if currentVideo and currentVideo.allRelatedVideo:
         relatedUrls = [v['url'] for v in currentVideo.allRelatedVideo]

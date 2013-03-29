@@ -17,6 +17,7 @@ class ImgService:
         self.delay = 0
         self.repeat = False
         self.filenames = []
+        self.what = None
 
     def begin(self, what):
         self.what = what
@@ -61,9 +62,10 @@ class ImgService:
 
     def end(self):
         logging.debug("End %s", self.what)
-        self.stop = True
-        time.sleep(0.2)
-        self._clear()
+        if self.what and self.stop is False:
+            self.stop = True
+            time.sleep(0.2)
+            self._clear()
 
 
 if __name__ == '__main__':
