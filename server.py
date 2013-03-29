@@ -107,9 +107,11 @@ def play_list():
                         position = int(player.position / 1000000)
                         if position > 0 and imgService.stop is False:
                             imgService.end()
-                        currentVideo.progress = int(currentVideo.start_pos) + position
-                        if int(currentVideo.progress) % 30 == 0 and int(currentVideo.progress) > 0:
-                            db_writeHistory(currentVideo)
+                        new_progress = int(currentVideo.start_pos) + position
+                        if currentVideo.progress != new_progress:
+                            currentVideo.progress = new_progress
+                            if new_progress % 30 == 0 and new_progress > 0:
+                                db_writeHistory(currentVideo)
                 except:
                     logging.exception("Got exception")
             else:
