@@ -98,7 +98,8 @@ def play_list():
         else:
             startPlayer(v.strip())
         timeout = 10
-        imgService.begin(LOADING)
+        if not v.startswith('next:'):
+            imgService.begin(LOADING)
         while True:
             if player and player.isalive():
                 time.sleep(1)
