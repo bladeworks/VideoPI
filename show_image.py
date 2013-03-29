@@ -19,8 +19,8 @@ class ImgService:
         self.filenames = []
 
     def begin(self, what):
-        logging.debug("Begin %s", self.what)
         self.what = what
+        logging.debug("Begin %s", self.what)
         try:
             self._clear()
             self.stop = False
