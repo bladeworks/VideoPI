@@ -23,7 +23,7 @@ def db_getHistory():
 
 def db_writeHistory(video):
     con = sqlite3.connect('media.db')
-    logging.debug("Write: %s", video)
+    # logging.debug("Write: %s", video)
     with con:
         cur = con.cursor()
         if video.dbid:

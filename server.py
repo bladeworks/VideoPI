@@ -14,6 +14,7 @@ from threading import Thread
 from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
+from show_image import *
 
 current_website = None
 currentVideo = None
@@ -96,12 +97,17 @@ def play_list():
         else:
             startPlayer(v.strip())
         timeout = 10
+        imgService = ImgService()
+        imgService.begin(LOADING)
         while True:
             if player and player.isalive():
                 time.sleep(1)
                 try:
                     if currentVideo:
-                        currentVideo.progress = int(currentVideo.start_pos) + int(player.position / 1000000)
+                        position = int(player.position / 1000000)
+                        if position > 0 and imgService.stop is False:
+                            imgService.end()
+                        currentVideo.progress = int(currentVideo.start_pos) + position
                         if int(currentVideo.progress) % 30 == 0 and int(currentVideo.progress) > 0:
                             db_writeHistory(currentVideo)
                 except:
@@ -118,6 +124,8 @@ def play_list():
                         break
                 else:
                     logging.info("Break")
+                    imgService.end()
+                    imgService.begin(FINISHED)
                     break
 
 
@@ -177,7 +185,7 @@ def play_url():
     db_writeHistory(currentVideo)
     terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
-    logging.debug("currentVideo = %s", currentVideo)
+    # logging.debug("currentVideo = %s", currentVideo)
     global playThread
     if not playThread or (not playThread.isAlive()):
         logging.debug("New a thred to play the list.")
