@@ -62,6 +62,7 @@ class ImgService:
     def end(self):
         logging.debug("End %s", self.what)
         self.stop = True
+        time.sleep(0.2)
         self._clear()
 
 
