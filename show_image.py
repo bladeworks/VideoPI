@@ -8,6 +8,7 @@ import logging
 
 LOADING = "loading"
 FINISHED = "finished"
+TIMEOUT = "timout"
 
 
 class ImgService:
@@ -30,10 +31,10 @@ class ImgService:
                 self.repeat = True
                 self.filenames = ["static/img/loading/frame%s.png" % (i + 1) for i in range(12)]
                 self.show_image()
-            elif self.what == FINISHED:
+            else:
                 self.delay = 0
                 self.repeat = False
-                self.filenames = ["static/img/finished.jpg"]
+                self.filenames = ["static/img/%s.jpg" % self.what]
                 self.show_image()
         except:
             logging.exception("Exception catched")

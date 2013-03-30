@@ -4,7 +4,6 @@ from bottle import route, run, template, request, static_file, post, get, redire
 from database import *
 from webparser import *
 import subprocess
-import platform
 import sys
 import os
 import time
@@ -15,10 +14,12 @@ from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
 from show_image import *
+import bottle
+
+bottle.debug = True
 
 current_website = None
 currentVideo = None
-currentPlatform = platform.system()
 currentPlayerApp = None
 
 player = None
@@ -83,7 +84,7 @@ def startPlayer(url, playerOnly=False):
             downloader = subprocess.Popen(["wget", url, "-O", "/tmp/omxpipe", "-o", "download.log"])
         url = "/tmp/omxpipe"
     try:
-        player = OMXPlayer(url, args="-o hdmi --audio_fifo 20 --video_fifo 20 --audio_queue 20 --video_queue 20", start_playback=True)
+        player = OMXPlayer(url, args="-o hdmi", start_playback=True)
     except:
         logging.exception("Got exception")
 
@@ -94,7 +95,7 @@ def play_list():
         v = playQueue.get()
         logging.info("Play %s", v)
         if v.startswith('next:'):
-            _play_url(v.replace('next:', ''))
+            parse_url(v.replace('next:', ''))
         else:
             startPlayer(v.strip())
         timeout = 10
@@ -123,6 +124,7 @@ def play_list():
                     if timeout <= 0:
                         terminatePlayerAndDownloader()
                         imgService.end()
+                        imgService.begin(TIMEOUT)
                         logging.warn("Timeout! Stop the player and downloader")
                         break
                 else:
@@ -198,28 +200,25 @@ def play_url():
     if currentVideo.realUrl == 'playlist.m3u':
         # Because omxplayer doesn't support list we have to play one by one.
         sections = parseM3U()
+        func = fillQueue
+        args = []
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
-            if currentVideo.progress > advanceTime:
-                result = goto(currentVideo.progress - advanceTime, 0)
-                if result != 'OK':
-                    merge_play(sections)
-            else:
-                merge_play(sections)
+            func = merge_play
+            args = sections
+        if currentVideo.progress > advanceTime:
+            result = goto(currentVideo.progress - advanceTime, 0)
+            if result != 'OK':
+                func(args)
         else:
-            if currentVideo.progress > advanceTime:
-                result = goto(currentVideo.progress - advanceTime, 0)
-                if result != 'OK':
-                    fillQueue()
-            else:
-                fillQueue()
+            func(args)
     else:
         fillQueue([currentVideo.realUrl])
     return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
                     history=db_getHistory())
 
 
-def _play_url(url, format=None, dbid=None):
-    logging.debug("_play_url %s", url)
+def parse_url(url, format=None, dbid=None):
+    logging.debug("parse_url %s, format = %s, dbid = %s", (url, format, dbid))
     imgService.end()
     global currentVideo
     if currentVideo and currentVideo.allRelatedVideo:
@@ -409,7 +408,7 @@ def forward():
     if current_website == 'wangyi' and 'vs' in request.query and not url:
         url = "http://so.open.163.com/movie/search/searchprogram/ot0/%s/1.html?vs=%s&pltype=2" % (request.query.vs, request.query.vs)
         logging.debug("The url for wangyi search is: %s", url)
-    return _play_url(url, format, dbid)
+    return parse_url(url, format, dbid)
 
 
 @get('/shutdown')
@@ -427,6 +426,8 @@ def restart():
 @error(404)
 def error404(error):
     logging.debug("404 on url: %s", request.url)
+    if url == "http://192.168.1.100/jsonrpc":
+        return
     p_results = urlparse(request.url)
     to_replace = p_results.scheme + "://" + p_results.netloc
     print to_replace
@@ -445,9 +446,6 @@ def error404(error):
 @error(500)
 def error500(error):
     return ("Exception: %s\nDetails: %s" % (error.exception, error.traceback)).replace('\n', '<br>')
-
-import bottle
-bottle.debug = True
 
 
 def newFifo(filename):

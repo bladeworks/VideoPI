@@ -41,7 +41,9 @@ def db_writeHistory(video):
                 INSERT INTO media (title, url, last_play_date, last_play_pos, duration, site)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """, (buffer(video.title), buffer(video.url), int(time.time()), 0, video.duration, video.site))
-            video.dbid = cur.lastrowid
+            dbid = cur.lastrowid
+            logging.debug("set dbid to %s", dbid)
+            video.dbid = dbid
         con.commit()
 
 
