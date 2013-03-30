@@ -101,7 +101,7 @@ def download_file():
     while True:
         v = downloadQueue.get()
         logging.debug("Download task: %s", v)
-        downloader = subprocess.Popen(v, shell=True)
+        downloader = subprocess.call(v, shell=True)
 
 
 def play_list():
@@ -200,7 +200,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
-        downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
+        downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
         lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % ("|".join(p_list), delta, outputFileName))
