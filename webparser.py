@@ -356,15 +356,13 @@ class QQWebParserMP4(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceQQ(responseString)
-
-    def replaceQQ(self, responseString):
-        return responseString.replace(' href="/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
-            replace(' href="http://v.qq.com/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site).\
-            replace('form action="/', 'form action="/forward').\
-            replace('form action="http://v.qq.com/', 'form action="/forward?url="http://v.qq.com/').\
-            replace(' name="sform" id="sform"', '').\
-            replace(' name="sformMid" id="sformMid"', '')
+        replaces = [(' href="/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site),
+                    (' href="http://v.qq.com/', ' href="/forward?site=%s&url=http://v.qq.com/' % self.site),
+                    ('form action="/', 'form action="/forward'),
+                    ('form action="http://v.qq.com/', 'form action="/forward?url="http://v.qq.com/'),
+                    (' name="sform" id="sform"', ''),
+                    (' name="sformMid" id="sformMid"', '')]
+        return self.replaceResponse(responseString, replaces)
 
 
 class QQWebParser(QQWebParserMP4):
@@ -450,21 +448,15 @@ class YoukuWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceYouku(responseString)
-
-    def replaceYouku(self, responseString):
-        return responseString.replace(' href="http://static', ' nohref="http://static').\
-            replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
-            replace(" href='http://", " href='/forward?site=%s&url=http://" % self.site).\
-            replace(' nohref="http://static', ' href="http://static').\
-            replace('action="http://www.soku.com/search_video"',
-                    'action="/forward"').\
-            replace('onsubmit="return MiniHeader.dosearch(this);" ', '').\
-            replace('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"',
-                    'type="submit"').\
-            replace(' id="headq"', '').\
-            replace('http:\/\/v.youku.com\/v_show\/id_',
-                    '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)
+        replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
+                    (" href='http://", " href='/forward?site=%s&url=http://" % self.site),
+                    ('action="http://www.soku.com/search_video"', 'action="/forward"'),
+                    ('onsubmit="return MiniHeader.dosearch(this);" ', ''),
+                    ('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"', 'type="submit"'),
+                    (' id="headq"', ''),
+                    ('http:\/\/v.youku.com\/v_show\/id_', '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)]
+        skips = [' href="http://static']
+        return self.replaceResponse(responseString, replaces, skips)
 
 
 class WangyiWebParser(WebParser):
@@ -514,12 +506,9 @@ class WangyiWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceWangyi(responseString).decode('gbk')
-
-    def replaceWangyi(self, responseString):
         s = responseString.replace('<form id="videoSearchForm" target="_blank">', '<form action="/forward" target="_blank">')
         return self.wangyi_url_replace.sub(lambda m: m.group(0).replace(m.group('url'),
-                                           '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s)
+                                           '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s).decode('gbk')
 
 
 class YinyuetaiWebParser(WebParser):
@@ -573,11 +562,9 @@ class YinyuetaiWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceYinyuetai(responseString)
-
-    def replaceYinyuetai(self, responseString):
-        return responseString.replace('a href="/', 'a href="/forward?site=%s&url=/' % self.site).\
-            replace('a href="http', 'a href="/forward?site=%s&url=http' % self.site)
+        replaces = [('a href="/', 'a href="/forward?site=%s&url=/' % self.site),
+                    ('a href="http', 'a href="/forward?site=%s&url=http' % self.site)]
+        return self.replaceResponse(responseString, replaces)
 
 
 class KankanWebParser(WebParser):
@@ -640,13 +627,11 @@ class KankanWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceKankan(responseString)
-
-    def replaceKankan(self, responseString):
-        s = responseString.replace('document.domain="kankan.com";', '').\
-            replace("document.domain = 'kankan.com';", '').\
-            replace('src="http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js',
-                    'src="/forward?site=%s&url=http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js' % self.site)
+        replaces = [('document.domain="kankan.com";', ''),
+                    ("document.domain = 'kankan.com';", ''),
+                    ('src="http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js',
+                    'src="/forward?site=%s&url=http://misc.web.xunlei.com/data_dot_movie_content_new/js/main_v2.js' % self.site)]
+        s = self.replaceResponse(responseString, replaces)
         return self.kankan_url_replace.sub(lambda m: m.group(0).replace(m.group('url'),
                                            '/forward?site=%s&url=%s' % (self.site, urllib2.quote(m.group('url')))), s)
 
@@ -682,11 +667,8 @@ class YoutubeWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return self.replaceYoutube(responseString)
-
-    def replaceYoutube(self, responseString):
-        return responseString.replace(' href="http://s.ytimg.com/', ' nohref="http://s.ytimg.com/').\
-            replace(' href="http://', ' href="/forward?site=%s&url=http://' % self.site).\
-            replace('action="/results"', 'action="/forward?site=%s&url=http://www.youtube.com/results' % self.site).\
-            replace(' href="/', ' href="/forward?site=%s&url=http://www.youtube.com/' % self.site).\
-            replace(' nohref="http://s.ytimg.com/', ' href="http://s.ytimg.com/')
+        replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
+                    ('action="/results"', 'action="/forward?site=%s&url=http://www.youtube.com/results' % self.site),
+                    (' href="/', ' href="/forward?site=%s&url=http://www.youtube.com/' % self.site)]
+        skips = [' href="http://s.ytimg.com/']
+        return self.replaceResponse(responseString, replaces, skips)
