@@ -122,6 +122,7 @@ def play_list():
                     timeout -= 1
                     if timeout <= 0:
                         terminatePlayerAndDownloader()
+                        imgService.end()
                         logging.warn("Timeout! Stop the player and downloader")
                         break
                 else:
