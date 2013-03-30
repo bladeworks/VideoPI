@@ -256,6 +256,17 @@ class WebParser:
             f.write(m3u)
         return "playlist.m3u"
 
+    def replaceResponse(self, responseString, replaces, skips=[]):
+        skip_pre = "dontreplacexyz"
+        ret = responseString
+        for skip in skips:
+            ret = ret.replace(skip, "%s%s" % (skip_pre, skip))
+        for replace in replaces:
+            ret = ret.replace(replace[0], replace[1])
+        for skip in skips:
+            ret = ret.replace("%s%s" % (skip_pre, skip), skip)
+        return ret
+
 
 class QQWebParserMP4(WebParser):
     qq_vid_pattern = re.compile('vid:"(?P<vid>\w+)"')

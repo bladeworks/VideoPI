@@ -24,8 +24,11 @@ currentPlayerApp = None
 
 player = None
 downloader = None
+merger = None
 playThread = None
+downloadThread = None
 playQueue = Queue()
+downloadQueue = Queue()
 imgService = ImgService()
 
 import logging
@@ -48,10 +51,14 @@ def isProcessAlive(process):
     return False
 
 
-def clearQueue():
-    global playQueue
-    with playQueue.mutex:
-        playQueue.queue.clear()
+def clearQueue(queueName="playQueue"):
+    global playQueue, downloadQueue
+    if queueName == "playQueue":
+        queue = playQueue
+    else:
+        queue = downloadQueue
+    with queue.mutex:
+        queue.queue.clear()
 
 
 def parseM3U():
@@ -89,6 +96,14 @@ def startPlayer(url, playerOnly=False):
         logging.exception("Got exception")
 
 
+def download_file():
+    global downloader, downloadQueue
+    while True:
+        v = downloadQueue.get()
+        logging.debug("Download task: %s", v)
+        downloader = subprocess.Popen(v)
+
+
 def play_list():
     global player, playQueue, currentVideo, downloader
     while True:
@@ -96,6 +111,7 @@ def play_list():
         logging.info("Play %s", v)
         if v.startswith('next:'):
             parse_url(v.replace('next:', ''))
+            continue
         else:
             startPlayer(v.strip())
         timeout = 10
@@ -130,9 +146,18 @@ def play_list():
                 else:
                     logging.info("Break")
                     imgService.end()
-                    if not v.startswith('next:'):
+                    if playQueue.empty():
                         imgService.begin(FINISHED)
                     break
+
+
+def terminateProcess(process, name, additionalkill=None):
+    if process and isProcessAlive(process):
+        logging.warn("Terminate %s" % name)
+        process.terminate()
+        process = None
+        if additionalkill:
+            subprocess.call(["killall", "-9", additionalkill])
 
 
 def terminatePlayer():
@@ -144,12 +169,10 @@ def terminatePlayer():
 
 
 def terminateDownloader():
-    global downloader
-    if downloader and isProcessAlive(downloader):
-        logging.warn("Terminate the previous downloader")
-        downloader.terminate()
-        downloader = None
-        subprocess.call(["killall", "-9", "ffmpeg"])
+    global downloader, merger
+    clearQueue(queueName="downloadQueue")
+    terminateProcess(downloader, "downloader")
+    terminateProcess(merger, "merger", "ffmpeg")
 
 
 def terminatePlayerAndDownloader():
@@ -158,7 +181,9 @@ def terminatePlayerAndDownloader():
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
+    global downloadThread, downloadQueue, merger
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
+    terminateDownloader()
     outputFileName = '/tmp/all.ts'
     newFifo(outputFileName)
     exec_filename = "/tmp/merge.sh"
@@ -168,10 +193,14 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         logging.error("Error when delete file: %s", e.strerror)
     lines = ["#%s\n" % currentVideo.url]
     p_list = []
+    if not downloadThread or (not downloadThread.isAlive()):
+        logging.debug("New a thred to download the file.")
+        downloadThread = Thread(target=download_file)
+        downloadThread.start()
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
-        lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
+        downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log &\n" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
         lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % ("|".join(p_list), delta, outputFileName))
@@ -180,9 +209,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     with open(exec_filename, 'wb') as f:
         f.writelines(lines)
     fillQueue(urls=[outputFileName])
-    global downloader
-    terminateDownloader()
-    downloader = subprocess.Popen(["sh", exec_filename])
+    merger = subprocess.Popen(["sh", exec_filename])
 
 
 def play_url():
@@ -213,8 +240,7 @@ def play_url():
             func(args)
     else:
         fillQueue([currentVideo.realUrl])
-    return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
-                    history=db_getHistory())
+    redirect('/')
 
 
 def parse_url(url, format=None, dbid=None):
