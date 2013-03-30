@@ -101,7 +101,7 @@ def download_file():
     while True:
         v = downloadQueue.get()
         logging.debug("Download task: %s", v)
-        downloader = subprocess.Popen(v)
+        downloader = subprocess.Popen(v, shell=True)
 
 
 def play_list():
