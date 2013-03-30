@@ -102,7 +102,7 @@ def download_file():
         v = downloadQueue.get()
         logging.debug("Download task: %s", v)
         downloader = subprocess.Popen(v, shell=True)
-        downloader.communicate()
+        # downloader.communicate()
 
 
 def play_list():
