@@ -243,7 +243,7 @@ def play_url():
     else:
         fillQueue([currentVideo.realUrl])
     while not (player and player.isalive()):
-        sleep(1)
+        time.sleep(1)
     redirect('/')
 
 
