@@ -257,6 +257,7 @@ class WebParser:
         return "playlist.m3u"
 
     def replaceResponse(self, responseString, replaces, skips=[]):
+        logging.info("Replace response now.")
         skip_pre = "dontreplacexyz"
         ret = responseString
         for skip in skips:

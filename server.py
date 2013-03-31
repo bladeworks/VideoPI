@@ -102,7 +102,7 @@ def download_file():
         v = downloadQueue.get()
         logging.debug("Download task: %s", v)
         downloader = subprocess.Popen(v, shell=True)
-        # downloader.communicate()
+        downloader.communicate()
 
 
 def play_list():
@@ -207,7 +207,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     if delta > 0:
         lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % ("|".join(p_list), delta, outputFileName))
     else:
-        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % ("|".join(p_list), outputFileName))
+        lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
     with open(exec_filename, 'wb') as f:
         f.writelines(lines)
     fillQueue(urls=[outputFileName])
