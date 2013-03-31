@@ -174,22 +174,18 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     newFifo(outputFileName)
     merge_sh = "/tmp/merge.sh"
     download_sh = "/tmp/download.sh"
-    try:
-        os.remove(merge_sh)
-    except OSError as e:
-        logging.error("Error when delete file: %s", e.strerror)
     lines = ["#%s\n" % currentVideo.url]
     download_lines = []
     p_list = []
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
-        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
         p_list.append(pname)
-    if delta > 0:
-        lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % (" ".join(p_list), delta, outputFileName))
-    else:
-        lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
+        if idx == 0 and delta > 0:
+            download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (delta, v, pname, pname))
+            continue
+        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
+    lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
     with open(merge_sh, 'wb') as f:
         f.writelines(lines)
     with open(download_sh, 'wb') as f:
