@@ -102,7 +102,7 @@ def download_file():
         v = downloadQueue.get()
         logging.debug("Download task: %s", v)
         downloader = subprocess.Popen(v, shell=True)
-        downloader.communicate()
+        # downloader.communicate()
 
 
 def play_list():
@@ -134,8 +134,8 @@ def play_list():
                 except:
                     logging.exception("Got exception")
             else:
+                time.sleep(1)
                 if isProcessAlive(downloader):
-                    time.sleep(1)
                     logging.info("Restart the player")
                     startPlayer(v.strip(), playerOnly=True)
                     timeout -= 1
@@ -173,7 +173,7 @@ def terminatePlayer():
 def terminateDownloader():
     global downloader, merger
     clearQueue(queueName="downloadQueue")
-    terminateProcess(downloader, "downloader")
+    terminateProcess(downloader, "downloader", "wget")
     terminateProcess(merger, "merger", "ffmpeg")
 
 
