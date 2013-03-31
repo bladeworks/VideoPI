@@ -183,17 +183,19 @@ def terminatePlayerAndDownloader():
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
-    global downloadThread, downloadQueue, merger
+    global downloadThread, downloadQueue, merger, downloader
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
     terminateDownloader()
     outputFileName = '/tmp/all.ts'
     newFifo(outputFileName)
-    exec_filename = "/tmp/merge.sh"
+    merge_sh = "/tmp/merge.sh"
+    download_sh = "/tmp/download.sh"
     try:
-        os.remove(exec_filename)
+        os.remove(merge_sh)
     except OSError as e:
         logging.error("Error when delete file: %s", e.strerror)
     lines = ["#%s\n" % currentVideo.url]
+    download_lines = []
     p_list = []
     if not downloadThread or (not downloadThread.isAlive()):
         logging.debug("New a thred to download the file.")
@@ -202,16 +204,20 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
-        downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
+        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log && " % (v, pname, pname))
+        # downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
         lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % (" ".join(p_list), delta, outputFileName))
     else:
         lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
-    with open(exec_filename, 'wb') as f:
+    with open(merge_sh, 'wb') as f:
         f.writelines(lines)
+    with open(download_sh, 'wb') as f:
+        f.writelines(download_lines)
+    downloader = subprocess.Popen(["sh", download_sh])
     fillQueue(urls=[outputFileName])
-    merger = subprocess.Popen(["sh", exec_filename])
+    merger = subprocess.Popen(["sh", merge_sh])
 
 
 def play_url():
