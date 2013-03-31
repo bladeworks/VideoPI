@@ -39,7 +39,7 @@ class ImgService:
                 filenames = ["static/img/loading/frame%s.png" % (i + 1) for i in range(12)]
                 img = Img(what, 0.2, filenames)
             else:
-                filenames = ["static/img/%s.jpg" % self.what]
+                filenames = ["static/img/%s.jpg" % what]
                 img = Img(what, 0, filenames)
             logging.debug("Enqueue: %s", img)
             self.imgQueue.put(img)
