@@ -26,9 +26,7 @@ player = None
 downloader = None
 merger = None
 playThread = None
-downloadThread = None
 playQueue = Queue()
-downloadQueue = Queue()
 imgService = ImgService()
 
 import logging
@@ -51,14 +49,10 @@ def isProcessAlive(process):
     return False
 
 
-def clearQueue(queueName="playQueue"):
-    global playQueue, downloadQueue
-    if queueName == "playQueue":
-        queue = playQueue
-    else:
-        queue = downloadQueue
-    with queue.mutex:
-        queue.queue.clear()
+def clearQueue():
+    global playQueue
+    with playQueue.mutex:
+        playQueue.queue.clear()
 
 
 def parseM3U():
@@ -94,15 +88,6 @@ def startPlayer(url, playerOnly=False):
         player = OMXPlayer(url, args="-o hdmi", start_playback=True)
     except:
         logging.exception("Got exception")
-
-
-def download_file():
-    global downloader, downloadQueue
-    while True:
-        v = downloadQueue.get()
-        logging.debug("Download task: %s", v)
-        downloader = subprocess.Popen(v, shell=True)
-        downloader.communicate()
 
 
 def play_list():
@@ -172,7 +157,6 @@ def terminatePlayer():
 
 def terminateDownloader():
     global downloader, merger
-    clearQueue(queueName="downloadQueue")
     terminateProcess(downloader, "downloader", "wget")
     terminateProcess(merger, "merger", "ffmpeg")
 
@@ -183,7 +167,7 @@ def terminatePlayerAndDownloader():
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
-    global downloadThread, downloadQueue, merger, downloader
+    global merger, downloader
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
     terminateDownloader()
     outputFileName = '/tmp/all.ts'
@@ -197,15 +181,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     lines = ["#%s\n" % currentVideo.url]
     download_lines = []
     p_list = []
-    if not downloadThread or (not downloadThread.isAlive()):
-        logging.debug("New a thred to download the file.")
-        downloadThread = Thread(target=download_file)
-        downloadThread.start()
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
         download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
-        # downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
         lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % (" ".join(p_list), delta, outputFileName))
