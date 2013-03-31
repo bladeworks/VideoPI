@@ -205,7 +205,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
-        lines.append('ffmpeg -f mpegts -i "concat:%s" -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % ("|".join(p_list), delta, outputFileName))
+        lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts -ss %s %s 2> /tmp/merge.log\n' % (" ".join(p_list), delta, outputFileName))
     else:
         lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
     with open(exec_filename, 'wb') as f:
