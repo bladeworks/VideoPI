@@ -242,6 +242,8 @@ def play_url():
             func(args)
     else:
         fillQueue([currentVideo.realUrl])
+    while not (player and player.isalive()):
+        sleep(1)
     redirect('/')
 
 
@@ -291,8 +293,8 @@ def parse_url(url, format=None, dbid=None):
 
 @route('/')
 def index():
+    global currentVideo
     if not (player and player.isalive()):
-        global currentVideo
         currentVideo = None
     return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
                     history=db_getHistory())
