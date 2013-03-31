@@ -204,7 +204,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
-        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log && " % (v, pname, pname))
+        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
         # downloadQueue.put("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
         p_list.append(pname)
     if delta > 0:
