@@ -455,7 +455,7 @@ class YoukuWebParser(WebParser):
                     ('type="button" onclick="return MiniHeader.dosearch(document.getElementById(\'headSearchForm\'));"', 'type="submit"'),
                     (' id="headq"', ''),
                     ('http:\/\/v.youku.com\/v_show\/id_', '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)]
-        skips = [' href="http://static']
+        skips = ['href="http://static']
         return self.replaceResponse(responseString, replaces, skips)
 
 
@@ -670,5 +670,5 @@ class YoutubeWebParser(WebParser):
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
                     ('action="/results"', 'action="/forward?site=%s&url=http://www.youtube.com/results' % self.site),
                     (' href="/', ' href="/forward?site=%s&url=http://www.youtube.com/' % self.site)]
-        skips = [' href="http://s.ytimg.com/']
+        skips = ['href="http://s.ytimg.com/']
         return self.replaceResponse(responseString, replaces, skips)
