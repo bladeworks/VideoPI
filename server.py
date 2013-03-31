@@ -246,7 +246,7 @@ def play_url():
 
 
 def parse_url(url, format=None, dbid=None):
-    logging.debug("parse_url %s, format = %s, dbid = %s", (url, format, dbid))
+    logging.debug("parse_url %s, format = %s, dbid = %s", url, format, dbid)
     imgService.end()
     global currentVideo
     if currentVideo and currentVideo.allRelatedVideo:
