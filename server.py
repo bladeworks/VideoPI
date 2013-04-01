@@ -14,6 +14,7 @@ from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
 from show_image import *
+from config import *
 import bottle
 
 bottle.debug = True
@@ -28,6 +29,8 @@ merger = None
 playThread = None
 playQueue = Queue()
 imgService = ImgService()
+sreenWidth = 0
+sreenHeight = 0
 
 import logging
 logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
@@ -78,14 +81,31 @@ def fillQueue(urls=[]):
 
 def startPlayer(url, playerOnly=False):
     logging.info("Start player for %s", url)
-    global player, downloader, current_website
+    global player, downloader, current_website, currentVideo, screenWidth, screenHeight
     if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
         logging.info("Use external download tool")
         if not playerOnly:
             downloader = subprocess.Popen(["wget", url, "-O", "/tmp/omxpipe", "-o", "download.log"])
         url = "/tmp/omxpipe"
     try:
-        player = OMXPlayer(url, args="-o hdmi", start_playback=True)
+        args = "-o hdmi"
+        if screenWidth and screenHeight:
+            width, height = (0, 0)
+            try:
+                width, height = currentVideo.getResolution()
+            except:
+                logging.exception("Exception catched")
+            if width and height:
+                w_rate = screenWidth / width
+                h_rate = screenHeight / height
+                rate = min(w_rate, h_rate)
+                showWidth = rate * width
+                showHeight = rate * height
+                widthOff = (screenWidth - showWidth) / 2 + adjustWidth
+                heightOff = (screenHeight - showHeight) / 2 + adjustHeight
+                args += ' --win "%s %s %s %s"' % (0 + widthOff, 0 + heightOff, screenWidth - widthOff, screenHeight - heightOff)
+        logging.debug("args = %s", args)
+        player = OMXPlayer(url, args=args, start_playback=True)
     except:
         logging.exception("Got exception")
 
@@ -466,5 +486,16 @@ def newFifo(filename):
         pass
 
 
+def getScreenSize():
+    try:
+        output = subprocess.check_output(['fbset'])
+        p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
+        global screenWidth, screenHeight
+        screenWidth, screenHeight = p.search(output).groups()
+    except:
+        logging.exception("Exception catched")
+
+
 newFifo('/tmp/omxpipe')
+getScreenSize()
 run(host='0.0.0.0', port=80, reloader=True)

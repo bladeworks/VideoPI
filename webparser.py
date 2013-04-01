@@ -7,9 +7,9 @@ import json
 import logging
 import subprocess
 import time
-import sys
 from urlparse import urlparse
 from struct import unpack
+from config import *
 
 format2keyword = {
     1: "",
@@ -24,7 +24,6 @@ class Video:
         2: "高清",
         3: "超清"
     }
-    duration_pattern = re.compile('Duration: (?P<duration>.*?),')
 
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
                  dbid=None, availableFormat=[], currentFormat=None,
@@ -48,6 +47,17 @@ class Video:
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)
 
+    def getResolution(self):
+        url = self.realUrl
+        if self.realUrl == 'playlist.m3u':
+            with open('playlist.m3u', 'r') as f:
+                url = [v.strip() for v in f.readlines() if v.startswith('http')][0]
+        output = subprocess.check_output(['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams',
+                                          '-select_streams', 'v', url])
+        logging.debug('output = %s', output)
+        format = json.loads(output)
+        return (int(format['streams'][0]['width']), int(format['streams'][0]['height']))
+
     def getDurationWithFfmpeg(self, url):
         if url == 'playlist.m3u':
             duration = 0
@@ -62,21 +72,13 @@ class Video:
         logging.info("Get duration with ffmpeg for: %s", url)
         duration = 0
         try:
-            p = subprocess.Popen(['ffmpeg', '-i', url], stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
-            output = p.stdout.read()
+            output = subprocess.check_output(['ffprobe', '-v', 'quiet', '-of', 'json', '-show_format',
+                                              '-select_streams', 'v', url])
             logging.debug('output = %s', output)
-            r = self.duration_pattern.search(output)
-            s = None
-            if r:
-                s = r.group('duration')
-            ts = s.partition('.')[0].split(":")
-            duration += int(ts[0]) * 60 * 60
-            duration += int(ts[1]) * 60
-            duration += int(ts[2])
+            format = json.loads(output)
+            duration = int(float(format['format']['duration']))
         except:
-            e = sys.exc_info()[0]
-            logging.error("Exception: %s", e)
+            logging.exception("Exception catched")
         logging.info("Get duration with ffmpeg return: %s", duration)
         return duration
 
@@ -244,7 +246,10 @@ class WebParser:
         if not self.availableFormat:
             return None
         if not self.format:
-            self.format = self.availableFormat[-1]
+            if default_format in self.availableFormat:
+                self.format = default_format
+            else:
+                self.format = self.availableFormat[-1]
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s&flag=one&format=%s" % \
             (self.url, format2keyword[self.format])
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
