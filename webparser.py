@@ -44,19 +44,23 @@ class Video:
         self.progress = progress
         self.sections = sections
         self.start_pos = start_pos
+        self.width, self.height = (0, 0)
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)
 
     def getResolution(self):
-        url = self.realUrl
-        if self.realUrl == 'playlist.m3u':
-            with open('playlist.m3u', 'r') as f:
-                url = [v.strip() for v in f.readlines() if v.startswith('http')][0]
-        output = subprocess.check_output(['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams',
-                                          '-select_streams', 'v', url])
-        logging.debug('output = %s', output)
-        format = json.loads(output)
-        return (int(format['streams'][0]['width']), int(format['streams'][0]['height']))
+        if not(self.width and self.height):
+            url = self.realUrl
+            if self.realUrl == 'playlist.m3u':
+                with open('playlist.m3u', 'r') as f:
+                    url = [v.strip() for v in f.readlines() if v.startswith('http')][0]
+            output = subprocess.check_output(['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams',
+                                              '-select_streams', 'v', url])
+            logging.debug('output = %s', output)
+            format = json.loads(output)
+            self.width = int(format['streams'][0]['width'])
+            self.height = int(format['streams'][0]['height'])
+        return (self.width, self.height)
 
     def getDurationWithFfmpeg(self, url):
         if url == 'playlist.m3u':

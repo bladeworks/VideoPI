@@ -11,18 +11,18 @@ websites = {
         "info": "flv格式，不分段，但不能选择清晰度。"
     },
     "qqmp4": {
-        "title": "腾讯视频(mp4)",
+        "title": "腾讯视频(分段)",
         "url": "http://v.qq.com",
         "parser": QQWebParserMP4,
         "icon": "http://v.qq.com/favicon.ico",
-        "info": "mp4格式，分段，可选择清晰度。"
+        "info": "分段，可选择清晰度。"
     },
     "youku": {
-        "title": "优酷视频",
+        "title": "优酷视频(推荐)",
         "url": "http://www.youku.com",
         "parser": YoukuWebParser,
         "icon": "http://www.youku.com/favicon.ico",
-        "info": "mp4格式，分段，可选择清晰度。",
+        "info": "不分段，可选择清晰度。",
         "merge": True
     },
     "wangyi": {
@@ -30,7 +30,7 @@ websites = {
         "url": "http://open.163.com",
         "parser": WangyiWebParser,
         "icon": "http://open.163.com/favicon.ico",
-        "info": "Nothing"
+        "info": "不分段"
     },
     "yinyuetai": {
         "title": "音悦台",
@@ -56,20 +56,20 @@ websites = {
     },
 }
 
-actionToKey = {
-    'pause': 'p',
-    'stop': 'q',
-    'volup': '+',
-    'voldown': '-',
-    'f30': '\x1B[D',
-    'b30': '\x1B[C',
-    'f600': '\x1B[A',
-    'b600': '\x1B[B',
-    'showinfo': 'z',
-    'speedup': '1',
-    'speeddown': '2',
-    'togglesub': 's',
-}
+# actionToKey = {
+#     'pause': 'p',
+#     'stop': 'q',
+#     'volup': '+',
+#     'voldown': '-',
+#     'f30': '\x1B[D',
+#     'b30': '\x1B[C',
+#     'f600': '\x1B[A',
+#     'b600': '\x1B[B',
+#     'showinfo': 'z',
+#     'speedup': '1',
+#     'speeddown': '2',
+#     'togglesub': 's',
+# }
 
 actionDesc = [
     [
@@ -92,23 +92,22 @@ actionDesc = [
     # ]
 ]
 
-actionToKeyMac = {
-    'MPlayerX':
-    {
-        'pause': '49',
-        'stop': '12 using command down',
-        'volup': '24',
-        'voldown': '27',
-        'fullscreen': '3',
-    },
-    'VLC':
-    {
-        'pause': '49',
-        'stop': '12 using command down',
-        'volup': '126 using command down',
-        'voldown': '125 using command down',
-        'fullscreen': '3 using command down',
-    }
-}
+# actionToKeyMac = {
+#     'MPlayerX':
+#     {
+#         'pause': '49',
+#         'stop': '12 using command down',
+#         'volup': '24',
+#         'voldown': '27',
+#         'fullscreen': '3',
+#     },
+#     'VLC':
+#     {
+#         'pause': '49',
+#         'stop': '12 using command down',
+#         'volup': '126 using command down',
+#         'voldown': '125 using command down',
+#         'fullscreen': '3 using command down',
+#     }
+# }
 
-advanceTime = 30

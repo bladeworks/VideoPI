@@ -7,3 +7,6 @@ adjustHeight = 0
 
 # 1为普清，2为高清，3为超清
 default_format = 3
+
+# 播放历史记录时往前进多少秒以便回忆
+advanceTime = 30
