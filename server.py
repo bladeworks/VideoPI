@@ -383,7 +383,7 @@ def favicon():
 
 @get('/progress')
 def get_progress():
-    if currentVideo:
+    if currentVideo and player and player.isalive():
         return {"title": currentVideo.title, "progress": str(currentVideo.progress), "duration": currentVideo.durationToStr()}
     else:
         return {"title": "N/A", "progress": "0", "duration": "N/A"}
