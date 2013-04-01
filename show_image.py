@@ -56,7 +56,7 @@ class ImgService:
 
     def _show_image(self, img):
         for filename in img.filenames:
-            if self.stop:
+            if self.stop and img.delay > 0:
                 break
             cmd = "/usr/bin/fbv -i %s" % filename
             subprocess.call(cmd, shell=True)
