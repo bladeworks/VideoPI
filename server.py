@@ -244,6 +244,7 @@ def play_url(redirectToHome=True):
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
             func = merge_play
             args = sections
+        logging.debug("currentVideo.progress = %s", currentVideo.progress)
         if currentVideo.progress > advanceTime:
             result = goto(currentVideo.progress - advanceTime, 0)
             if result != 'OK':
