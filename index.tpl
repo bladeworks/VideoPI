@@ -73,7 +73,7 @@
 											'd'
 										%end
 										>
-										<a href="/forward?site={{currentVideo.site}}&url={{v['url']}}" data-ajax="false">{{v['title']}}</a>
+										<a href="/forward?site={{currentVideo.site}}&url={{v['url']}}&dbid={{currentVideo.dbid}}" data-ajax="false">{{v['title']}}</a>
 									</li>
 								%end
 							</ul>

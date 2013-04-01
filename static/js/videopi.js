@@ -49,6 +49,10 @@ function showMessage(message, timeout) {
 }
 function updateProgress() {
 	$.get('/progress', function(data) {
+		if(data['title'] !== $('#title').html()) {
+			console.log("Refresh page");
+			window.location = "/";
+		}
 		$('#title').html(data['title']);
 		$('#duration').html(data['duration']);
 		$('#progressbar').val(data['progress']);
