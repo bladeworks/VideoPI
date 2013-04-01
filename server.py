@@ -125,7 +125,6 @@ def play_list():
             continue
         else:
             startPlayer(v.strip())
-        timeout = 10
         imgService.begin(LOADING)
         time.sleep(2)
         while True:
@@ -147,6 +146,7 @@ def play_list():
                         logging.exception("Got exception")
             else:
                 logging.info("Break")
+                currentVideo = None
                 imgService.end()
                 if playQueue.empty():
                     imgService.begin(FINISHED)
@@ -299,9 +299,6 @@ def parse_url(url, format=None, dbid=None, redirectToHome=True):
 
 @route('/')
 def index():
-    global currentVideo
-    if not (player and player.isalive()):
-        currentVideo = None
     return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
                     history=db_getHistory())
 
