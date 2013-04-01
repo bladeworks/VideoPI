@@ -146,23 +146,11 @@ def play_list():
                     except:
                         logging.exception("Got exception")
             else:
-                time.sleep(1)
-                if isProcessAlive(downloader):
-                    logging.info("Restart the player")
-                    startPlayer(v.strip(), playerOnly=True)
-                    timeout -= 1
-                    if timeout <= 0:
-                        terminatePlayerAndDownloader()
-                        imgService.end()
-                        imgService.begin(TIMEOUT)
-                        logging.warn("Timeout! Stop the player and downloader")
-                        break
-                else:
-                    logging.info("Break")
-                    imgService.end()
-                    if playQueue.empty():
-                        imgService.begin(FINISHED)
-                    break
+                logging.info("Break")
+                imgService.end()
+                if playQueue.empty():
+                    imgService.begin(FINISHED)
+                break
 
 
 def terminateProcess(process, name, additionalkill=None):
