@@ -33,7 +33,7 @@ sreenWidth = 0
 sreenHeight = 0
 
 import logging
-logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
+logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
                     filename='app.log', level=logging.DEBUG)
 
 
@@ -54,6 +54,7 @@ def isProcessAlive(process):
 
 def clearQueue():
     global playQueue
+    logging.info("Clear the queue.")
     with playQueue.mutex:
         playQueue.queue.clear()
 
@@ -117,6 +118,7 @@ def play_list():
         v = playQueue.get()
         logging.info("Play %s", v)
         if v.startswith('next:'):
+            logging.info("Now play the next: %s", v)
             parse_url(v.replace('next:', ''))
             continue
         else:
@@ -189,6 +191,7 @@ def terminatePlayerAndDownloader():
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
     global merger, downloader
+    clearQueue()
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
     terminateDownloader()
     outputFileName = '/tmp/all.ts'
