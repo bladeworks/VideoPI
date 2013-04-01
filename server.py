@@ -234,7 +234,7 @@ def play_url(redirectToHome=True):
     db_writeHistory(currentVideo)
     terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
-    # logging.debug("currentVideo = %s", currentVideo)
+    logging.debug("currentVideo = %s", currentVideo)
     new_play_thread()
     if currentVideo.realUrl == 'playlist.m3u':
         # Because omxplayer doesn't support list we have to play one by one.
