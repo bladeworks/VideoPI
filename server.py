@@ -404,13 +404,16 @@ def goto(where, fromPos=-1):
             clearQueue()
             terminatePlayerAndDownloader()
             currentVideo.start_pos = where
+            currentVideo.progress = where
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
+            db_writeHistory(currentVideo)
             return 'OK'
         else:
             if c_idx != currentIdx:
                 clearQueue()
                 terminatePlayerAndDownloader()
                 currentVideo.start_pos = new_progress
+                currentVideo.progress = new_progress
                 fillQueue(sections[c_idx:])
                 return "OK"
 
