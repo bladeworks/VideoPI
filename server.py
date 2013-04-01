@@ -181,7 +181,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         pname = "/tmp/p%s" % idx
         newFifo(pname)
         p_list.append(pname)
-        if idx == 0 and delta > 0:
+        if idx == 0:
             download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (delta, v, pname, pname))
             continue
         download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
