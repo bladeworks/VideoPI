@@ -491,7 +491,9 @@ def getScreenSize():
         output = subprocess.check_output(['fbset'])
         p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
         global screenWidth, screenHeight
-        screenWidth, screenHeight = p.search(output).groups()
+        sw, sh = p.search(output).groups()
+        screenWidth = int(sw)
+        screenHeight = int(sh)
     except:
         logging.exception("Exception catched")
 
