@@ -132,7 +132,7 @@ def play_list():
                 try:
                     if currentVideo:
                         position = int(player.position / 1000000)
-                        logging.debug("Get position = %s", position)
+                        # logging.debug("Get position = %s", position)
                         if position > 0 and imgService.stop is False:
                             imgService.end()
                         new_progress = int(currentVideo.start_pos) + position
@@ -235,7 +235,7 @@ def play_url(redirectToHome=True):
     db_writeHistory(currentVideo)
     terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
-    logging.debug("currentVideo = %s", currentVideo)
+    # logging.debug("currentVideo = %s", currentVideo)
     new_play_thread()
     if currentVideo.realUrl == 'playlist.m3u':
         # Because omxplayer doesn't support list we have to play one by one.
@@ -410,16 +410,16 @@ def goto(where, fromPos=-1):
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
             clearQueue()
+            terminatePlayerAndDownloader()
             currentVideo.start_pos = where
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
-            terminatePlayer()
             return 'OK'
         else:
             if c_idx != currentIdx:
-                currentVideo.start_pos = new_progress
                 clearQueue()
-                fillQueue(sections[c_idx:])
                 terminatePlayerAndDownloader()
+                currentVideo.start_pos = new_progress
+                fillQueue(sections[c_idx:])
                 return "OK"
 
 
