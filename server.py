@@ -9,7 +9,7 @@ import os
 import time
 import urllib
 from urlparse import urlparse
-from threading import Thread
+from threading import Thread, Lock
 from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
@@ -31,6 +31,8 @@ playQueue = Queue()
 imgService = ImgService()
 sreenWidth = 0
 sreenHeight = 0
+
+lock = Lock()
 
 import logging
 logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
@@ -129,19 +131,20 @@ def play_list():
         while True:
             if player and player.isalive():
                 time.sleep(1)
-                try:
-                    if currentVideo:
-                        position = int(player.position / 1000000)
-                        # logging.debug("Get position = %s", position)
-                        if position > 0 and imgService.stop is False:
-                            imgService.end()
-                        new_progress = int(currentVideo.start_pos) + position
-                        if currentVideo.progress != new_progress:
-                            currentVideo.progress = new_progress
-                            if new_progress % 30 == 0 and new_progress > 0:
-                                db_writeHistory(currentVideo)
-                except:
-                    logging.exception("Got exception")
+                with lock:
+                    try:
+                        if currentVideo:
+                            position = int(player.position / 1000000)
+                            # logging.debug("Get position = %s", position)
+                            if position > 0 and imgService.stop is False:
+                                imgService.end()
+                            new_progress = int(currentVideo.start_pos) + position
+                            if currentVideo.progress != new_progress:
+                                currentVideo.progress = new_progress
+                                if new_progress % 30 == 0 and new_progress > 0:
+                                    db_writeHistory(currentVideo)
+                    except:
+                        logging.exception("Got exception")
             else:
                 time.sleep(1)
                 if isProcessAlive(downloader):
@@ -293,11 +296,13 @@ def parse_url(url, format=None, dbid=None, redirectToHome=True):
     parser = websites[current_website]['parser'](url, format)
     parseResult = parser.parse()
     if isinstance(parseResult, Video):
-        currentVideo = parseResult
-        logging.info('currentVideo = %s', str(currentVideo))
-        if dbid:
-            currentVideo.dbid = dbid
-            currentVideo.progress = db_getById(int(dbid)).progress
+        with lock:
+            terminatePlayerAndDownloader()
+            currentVideo = parseResult
+            logging.info('currentVideo = %s', str(currentVideo))
+            if dbid:
+                currentVideo.dbid = dbid
+                currentVideo.progress = db_getById(int(dbid)).progress
         return play_url(redirectToHome)
     else:
         logging.info('No video found, return the web page.')
