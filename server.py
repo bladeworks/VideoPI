@@ -119,7 +119,8 @@ def play_list():
         logging.info("Get item from playQueue: %s", v)
         if v.startswith('next:'):
             logging.info("Now play the next: %s", v)
-            parse_url(v.replace('next:', ''))
+            parse_url(v.replace('next:', ''), redirectToHome=False)
+            continue
         else:
             startPlayer(v.strip())
         timeout = 10
@@ -227,7 +228,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     new_play_thread()
 
 
-def play_url():
+def play_url(redirectToHome=True):
     global player, currentVideo, currentPlayerApp, playQueue, progress
     clearQueue()
     db_writeHistory(currentVideo)
@@ -251,12 +252,13 @@ def play_url():
             func(args)
     else:
         fillQueue([currentVideo.realUrl])
-    while not (player and player.isalive()):
-        time.sleep(1)
-    redirect('/')
+    if redirectToHome:
+        while not (player and player.isalive()):
+            time.sleep(1)
+        redirect('/')
 
 
-def parse_url(url, format=None, dbid=None):
+def parse_url(url, format=None, dbid=None, redirectToHome=True):
     logging.debug("parse_url %s, format = %s, dbid = %s", url, format, dbid)
     imgService.end()
     global currentVideo
@@ -285,7 +287,7 @@ def parse_url(url, format=None, dbid=None):
             if dbid:
                 currentVideo.dbid = dbid
             logging.debug("currentVideo = %s", currentVideo)
-            return play_url()
+            return play_url(redirectToHome)
     parser = websites[current_website]['parser'](url, format)
     parseResult = parser.parse()
     if isinstance(parseResult, Video):
@@ -294,7 +296,7 @@ def parse_url(url, format=None, dbid=None):
         if dbid:
             currentVideo.dbid = dbid
             currentVideo.progress = db_getById(int(dbid)).progress
-        return play_url()
+        return play_url(redirectToHome)
     else:
         logging.info('No video found, return the web page.')
         return parseResult
