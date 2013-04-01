@@ -232,8 +232,8 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
 def play_url(redirectToHome=True):
     global player, currentVideo, currentPlayerApp, playQueue, progress
     clearQueue()
-    db_writeHistory(currentVideo)
     terminatePlayerAndDownloader()
+    db_writeHistory(currentVideo)
     logging.info("Playing %s", currentVideo.realUrl)
     # logging.debug("currentVideo = %s", currentVideo)
     new_play_thread()
