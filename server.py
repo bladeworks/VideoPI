@@ -132,6 +132,7 @@ def play_list():
                 try:
                     if currentVideo:
                         position = int(player.position / 1000000)
+                        logging.debug("Get position = %s", position)
                         if position > 0 and imgService.stop is False:
                             imgService.end()
                         new_progress = int(currentVideo.start_pos) + position
