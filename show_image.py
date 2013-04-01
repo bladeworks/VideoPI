@@ -33,9 +33,8 @@ class ImgService:
 
     def begin(self, what):
         try:
-            self._clear()
-            self.stop = False
             if what == LOADING:
+                self.stop = False
                 filenames = ["static/img/loading/frame%s.png" % (i + 1) for i in range(12)]
                 img = Img(what, 0.2, filenames)
             else:
