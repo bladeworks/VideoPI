@@ -116,7 +116,7 @@ def play_list():
     global player, playQueue, currentVideo, downloader
     while True:
         v = playQueue.get()
-        logging.info("Play %s", v)
+        logging.info("Get item from playQueue: %s", v)
         if v.startswith('next:'):
             logging.info("Now play the next: %s", v)
             parse_url(v.replace('next:', ''))
