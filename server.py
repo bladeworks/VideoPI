@@ -120,7 +120,6 @@ def play_list():
         if v.startswith('next:'):
             logging.info("Now play the next: %s", v)
             parse_url(v.replace('next:', ''))
-            continue
         else:
             startPlayer(v.strip())
         timeout = 10
