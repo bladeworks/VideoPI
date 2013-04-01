@@ -73,7 +73,7 @@
 											'd'
 										%end
 										>
-										<a href="/forward?site={{currentVideo.site}}&url={{v['url']}}&dbid={{currentVideo.dbid}}" data-ajax="false">{{v['title']}}</a>
+										<a href="/forward?site={{currentVideo.site}}&url={{v['url']}}" data-ajax="false">{{v['title']}}</a>
 									</li>
 								%end
 							</ul>
@@ -84,7 +84,7 @@
 	  			%if currentVideo and currentVideo.availableFormat:
 		  			<div data-role="controlgroup" data-type="horizontal" id="formatSelect">
 			  			%for f in currentVideo.availableFormat:
-			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.url}}&format={{f}}" data-role="button" class="
+			  			<a href="/forward?site={{currentVideo.site}}&url={{currentVideo.url}}&format={{f}}&dbid={{currentVideo.dbid}}" data-role="button" class="
 			  			%if currentVideo.currentFormat == f: 
 			  			ui-disabled
 			  			%end
