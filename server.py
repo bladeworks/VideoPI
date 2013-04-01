@@ -96,6 +96,7 @@ def startPlayer(url, playerOnly=False):
             except:
                 logging.exception("Exception catched")
             if width and height:
+                logging.debug("screenWidth = %s, screenHeight = %s, width = %s, height = %s" % (screenWidth, screenHeight, width, height))
                 w_rate = screenWidth / width
                 h_rate = screenHeight / height
                 rate = min(w_rate, h_rate)
