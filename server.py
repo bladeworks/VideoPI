@@ -102,8 +102,8 @@ def startPlayer(url, playerOnly=False):
                 rate = min(w_rate, h_rate)
                 showWidth = rate * width
                 showHeight = rate * height
-                widthOff = (screenWidth - showWidth) / 2 + adjustWidth
-                heightOff = (screenHeight - showHeight) / 2 + adjustHeight
+                widthOff = int((screenWidth - showWidth) / 2 + adjustWidth)
+                heightOff = int((screenHeight - showHeight) / 2 + adjustHeight)
                 args += ' --win "%s %s %s %s"' % (0 + widthOff, 0 + heightOff, screenWidth - widthOff, screenHeight - heightOff)
         logging.debug("args = %s", args)
         player = OMXPlayer(url, args=args, start_playback=True)
@@ -493,8 +493,8 @@ def getScreenSize():
         p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
         global screenWidth, screenHeight
         sw, sh = p.search(output).groups()
-        screenWidth = int(sw)
-        screenHeight = int(sh)
+        screenWidth = float(sw)
+        screenHeight = float(sh)
     except:
         logging.exception("Exception catched")
 
