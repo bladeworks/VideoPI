@@ -72,7 +72,7 @@ function getProgress() {
 	});
 	setInterval(function() {
 		updateProgress();
-	}, 1000);
+	}, 5000);
 }
 function goAndRedirect(go, redirect) {
 	$.get(go, function(data) {
