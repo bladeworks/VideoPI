@@ -209,8 +209,10 @@ class WebParser:
     def getTZ(self):
         return time.timezone / (-60*60)
 
-    def fetchWeb(self, url, via_proxy=False):
+    def fetchWeb(self, url, via_proxy=False, use_wget=False):
         logging.debug("Fetch %s", url)
+        if use_wget:
+            return subprocess.check_output("wget -q -O - %s | cat" % url, shell=True)
         host = urlparse(url).hostname
         headers = {}
         if self.getTZ != 8:
@@ -456,7 +458,7 @@ class YoukuWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url)
+        responseString = self.fetchWeb(self.url, use_wget=True)
         logging.debug("Finish fetch web")
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
                     (" href='http://", " href='/forward?site=%s&url=http://" % self.site),
