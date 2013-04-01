@@ -189,6 +189,14 @@ def terminatePlayerAndDownloader():
     terminateDownloader()
 
 
+def new_play_thread():
+    global playThread
+    if not playThread or (not playThread.isAlive()):
+        logging.debug("New a thred to play the list.")
+        playThread = Thread(target=play_list)
+        playThread.start()
+
+
 def merge_play(sections, where=0, start_idx=0, delta=0):
     global merger, downloader
     clearQueue()
@@ -217,6 +225,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     downloader = subprocess.Popen(["sh", download_sh])
     fillQueue(urls=[outputFileName])
     merger = subprocess.Popen(["sh", merge_sh])
+    new_play_thread()
 
 
 def play_url():
@@ -226,11 +235,7 @@ def play_url():
     terminatePlayerAndDownloader()
     logging.info("Playing %s", currentVideo.realUrl)
     # logging.debug("currentVideo = %s", currentVideo)
-    global playThread
-    if not playThread or (not playThread.isAlive()):
-        logging.debug("New a thred to play the list.")
-        playThread = Thread(target=play_list)
-        playThread.start()
+    new_play_thread()
     if currentVideo.realUrl == 'playlist.m3u':
         # Because omxplayer doesn't support list we have to play one by one.
         sections = parseM3U()
