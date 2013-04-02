@@ -5,6 +5,10 @@ import sqlite3
 import time
 import logging
 from config import *
+try:
+    from userPrefs import *
+except:
+    logging.info("Not userPrefs.py found so skip user configuration.")
 #CREATE TABLE media(id INTEGER PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL, last_play_date INTEGER, last_play_pos INTEGER, duration INTEGER, site TEXT)
 
 

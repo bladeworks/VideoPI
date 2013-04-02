@@ -10,6 +10,10 @@ import time
 from urlparse import urlparse
 from struct import unpack
 from config import *
+try:
+    from userPrefs import *
+except:
+    logging.info("Not userPrefs.py found so skip user configuration.")
 
 format2keyword = {
     1: "",

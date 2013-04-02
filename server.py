@@ -15,6 +15,10 @@ from Constants import *
 from pyomxplayer import OMXPlayer
 from show_image import *
 from config import *
+try:
+    from userPrefs import *
+except:
+    logging.info("Not userPrefs.py found so skip user configuration.")
 import bottle
 
 bottle.debug = True
@@ -103,10 +107,10 @@ def startPlayer(url, playerOnly=False):
                 w_rate = screenWidth / width
                 h_rate = screenHeight / height
                 rate = min(w_rate, h_rate)
-                showWidth = rate * width
-                showHeight = rate * height
-                widthOff = int((screenWidth - showWidth) / 2 + adjustWidth)
-                heightOff = int((screenHeight - showHeight) / 2 + adjustHeight)
+                showWidth = rate * width * zoom
+                showHeight = rate * height * zoom
+                widthOff = int((screenWidth - showWidth) / 2)
+                heightOff = int((screenHeight - showHeight) / 2)
                 args += ' --win "%s %s %s %s"' % (0 + widthOff, 0 + heightOff, screenWidth - widthOff, screenHeight - heightOff)
         logging.debug("args = %s", args)
         player = OMXPlayer(url, args=args, start_playback=True)
