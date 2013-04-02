@@ -7,21 +7,21 @@ websites = {
         "title": "腾讯视频(flv)",
         "url": "http://v.qq.com",
         "parser": QQWebParser,
-        "icon": "http://v.qq.com/favicon.ico",
+        "icon": "/static/img/favicon/qq.ico",
         "info": "flv格式，不分段，但不能选择清晰度。"
     },
     "qqmp4": {
         "title": "腾讯视频(分段)",
         "url": "http://v.qq.com",
         "parser": QQWebParserMP4,
-        "icon": "http://v.qq.com/favicon.ico",
+        "icon": "/static/img/favicon/qq.ico",
         "info": "分段，可选择清晰度。"
     },
     "youku": {
         "title": "优酷视频(推荐)",
         "url": "http://www.youku.com",
         "parser": YoukuWebParser,
-        "icon": "http://www.youku.com/favicon.ico",
+        "icon": "/static/img/favicon/youku.ico",
         "info": "不分段，可选择清晰度。",
         "merge": True
     },
@@ -29,21 +29,21 @@ websites = {
         "title": "网易公开课",
         "url": "http://open.163.com",
         "parser": WangyiWebParser,
-        "icon": "http://open.163.com/favicon.ico",
+        "icon": "/static/img/favicon/wangyi.ico",
         "info": "不分段"
     },
     "yinyuetai": {
         "title": "音悦台",
         "url": "http://www.yinyuetai.com",
         "parser": YinyuetaiWebParser,
-        "icon": "http://s.yytcdn.com/favicon.ico",
+        "icon": "/static/img/favicon/yinyuetai.ico",
         "info": "Nothing"
     },
     "kankan": {
         "title": "迅雷看看",
         "url": "http://www.kankan.com",
         "parser": KankanWebParser,
-        "icon": "http://www.kankan.com/favicon.ico",
+        "icon": "/static/img/favicon/kankan.ico",
         "info": "Nothing",
         "externaldownload": True
     },
@@ -51,7 +51,7 @@ websites = {
         "title": "Youtube",
         "url": "http://www.youtube.com",
         "parser": YoutubeWebParser,
-        "icon": "http://www.youtube.com/favicon.ico",
+        "icon": "/static/img/favicon/youtube.ico",
         "info": "Nothing"
     },
 }
