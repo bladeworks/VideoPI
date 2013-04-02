@@ -10,3 +10,12 @@ default_format = 3
 
 # 播放历史记录时往前进多少秒以便回忆
 advanceTime = 30
+
+# 日志存放位置
+logStorage = "/tmp/videopi.log"
+
+# playlist.m3u
+playlistStorage = "/tmp/playlist.m3u"
+
+# database
+dbStorage = "media.db"

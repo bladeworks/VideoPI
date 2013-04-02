@@ -36,7 +36,7 @@ lock = Lock()
 
 import logging
 logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
-                    filename='app.log', level=logging.DEBUG)
+                    filename=logStorage, level=logging.DEBUG)
 
 
 def exceptionLogger(type, value, tb):
@@ -62,7 +62,7 @@ def clearQueue():
 
 
 def parseM3U():
-    with open('playlist.m3u', 'r') as f:
+    with open(playlistStorage, 'r') as f:
         return [v.strip() for v in f.readlines() if v.startswith('http')]
 
 
@@ -227,7 +227,7 @@ def play_url(redirectToHome=True):
     logging.info("Playing %s", currentVideo.realUrl)
     # logging.debug("currentVideo = %s", currentVideo)
     new_play_thread()
-    if currentVideo.realUrl == 'playlist.m3u':
+    if currentVideo.realUrl == playlistStorage:
         # Because omxplayer doesn't support list we have to play one by one.
         sections = parseM3U()
         func = fillQueue
@@ -507,4 +507,7 @@ def getScreenSize():
 
 newFifo('/tmp/omxpipe')
 getScreenSize()
-run(host='0.0.0.0', port=80, reloader=True)
+try:
+    run(host='0.0.0.0', port=80, quiet=True)
+except:
+    logging.exception("Exception catched")

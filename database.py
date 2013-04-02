@@ -4,11 +4,12 @@ from webparser import Video
 import sqlite3
 import time
 import logging
+from config import *
 #CREATE TABLE media(id INTEGER PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL, last_play_date INTEGER, last_play_pos INTEGER, duration INTEGER, site TEXT)
 
 
 def db_getHistory():
-    con = sqlite3.connect('media.db')
+    con = sqlite3.connect(dbStorage)
     con.row_factory = sqlite3.Row
     with con:
         c = con.cursor()
@@ -22,7 +23,7 @@ def db_getHistory():
 
 
 def db_writeHistory(video):
-    con = sqlite3.connect('media.db')
+    con = sqlite3.connect(dbStorage)
     # logging.debug("Write: %s", video)
     with con:
         cur = con.cursor()
@@ -48,7 +49,7 @@ def db_writeHistory(video):
 
 
 def db_getById(id):
-    con = sqlite3.connect('media.db')
+    con = sqlite3.connect(dbStorage)
     con.row_factory = sqlite3.Row
     with con:
         cur = con.cursor()
@@ -60,7 +61,7 @@ def db_getById(id):
 
 def db_delete(id):
     logging.debug("Delete %s", id)
-    con = sqlite3.connect('media.db')
+    con = sqlite3.connect(dbStorage)
     with con:
         if id == -1:
             # Delete all

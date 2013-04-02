@@ -28,6 +28,7 @@ class ImgService:
     def __init__(self):
         self.stop = False
         self.imgQueue = Queue()
+        self.current = None
         thread = Thread(target=self._show_thread)
         thread.start()
 
@@ -40,14 +41,18 @@ class ImgService:
             else:
                 filenames = ["static/img/%s.jpg" % what]
                 img = Img(what, 0, filenames)
-            logging.debug("Enqueue: %s", img)
-            self.imgQueue.put(img)
+            if what != self.current:
+                logging.debug("Enqueue: %s", img)
+                self.imgQueue.put(img)
+            else:
+                logging.debug("Same img so no enqueue")
         except:
             logging.exception("Exception catched")
 
     def _show_thread(self):
         while True:
             img = self.imgQueue.get()
+            self.current = img.what
             self._clear()
             if img.delay == 0:
                 self._show_image(img)
@@ -68,6 +73,7 @@ class ImgService:
 
     def end(self):
         self.stop = True
+        self.current = None
         self._clear()
 
 

@@ -51,8 +51,8 @@ class Video:
     def getResolution(self):
         if not(self.width and self.height):
             url = self.realUrl
-            if self.realUrl == 'playlist.m3u':
-                with open('playlist.m3u', 'r') as f:
+            if self.realUrl == playlistStorage:
+                with open(playlistStorage, 'r') as f:
                     url = [v.strip() for v in f.readlines() if v.startswith('http')][0]
             output = subprocess.check_output(['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams',
                                               '-select_streams', 'v', url])
@@ -63,9 +63,9 @@ class Video:
         return (self.width, self.height)
 
     def getDurationWithFfmpeg(self, url):
-        if url == 'playlist.m3u':
+        if url == playlistStorage:
             duration = 0
-            with open('playlist.m3u', 'r') as f:
+            with open(playlistStorage, 'r') as f:
                 for u in [v.strip() for v in f.readlines() if v.startswith('http')]:
                     duration += self.getSingleDurationWithFfmpeg(u)
             return duration
@@ -262,10 +262,10 @@ class WebParser:
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
         if not m3u:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
-        with open('playlist.m3u', 'wb') as f:
+        with open(playlistStorage, 'wb') as f:
             f.write('#EXTM3U\n')
             f.write(m3u)
-        return "playlist.m3u"
+        return playlistStorage
 
     def replaceResponse(self, responseString, replaces, skips=[]):
         logging.info("Replace response now.")
