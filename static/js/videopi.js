@@ -81,6 +81,11 @@ function goAndRedirect(go, redirect) {
 }
 function initHotkeys() {
 	$(document).keypress(function(e) {
+		// Don't fire in text-accepting inputs that we didn't directly bind to
+		if ( this !== e.target && (/textarea|select/i.test( e.target.nodeName ) ||
+			jQuery.inArray(e.target.type, textAcceptingInputTypes) > -1 ) ) {
+			return;
+		}
 		if (e.keyCode == '32' || e.keyCode == '112') {
 			control('pause');
 		} else if (e.keyCode == '113') {
