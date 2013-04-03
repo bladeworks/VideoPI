@@ -80,6 +80,7 @@ function goAndRedirect(go, redirect) {
 	});
 }
 function initHotkeys() {
+	textAcceptingInputTypes = ["text", "password", "number", "email", "url", "range", "date", "month", "week", "time", "datetime", "datetime-local", "search", "color"];
 	$(document).keypress(function(e) {
 		// Don't fire in text-accepting inputs that we didn't directly bind to
 		if ( this !== e.target && (/textarea|select/i.test( e.target.nodeName ) ||
