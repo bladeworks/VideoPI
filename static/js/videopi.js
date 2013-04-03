@@ -81,8 +81,14 @@ function goAndRedirect(go, redirect) {
 }
 function initHotkeys() {
 	$(document).keypress(function(e) {
-		if (e.keyCode === '32' || e.keyCode === '112') {
+		if (e.keyCode == '32' || e.keyCode == '112') {
 			control('pause');
+		} else if (e.keyCode == '113') {
+			control('stop');
+		} else if (e.keyCode == '43' || e.keyCode == '61') {
+			control('volup');
+		} else if (e.keyCode == '45' || e.keyCode == '95') {
+			control('voldown');
 		}
 	});
 }
