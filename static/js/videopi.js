@@ -79,3 +79,10 @@ function goAndRedirect(go, redirect) {
 		window.location = redirect;
 	});
 }
+function initHotkeys() {
+	$(document).keypress(function(e) {
+		if (e.keyCode === '32' || e.keyCode === '112') {
+			control('pause');
+		}
+	});
+}

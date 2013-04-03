@@ -15,6 +15,7 @@
 		%setdefault('currentVideo', None)
 	  	<script>
 	  		$('#main').on('pageshow', function() {
+	  			initHotkeys();
 	  			getProgress();
 	  		});
 	  	</script>
