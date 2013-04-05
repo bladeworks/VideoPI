@@ -69,7 +69,7 @@ class ImgService:
                 time.sleep(img.delay)
 
     def _clear(self):
-        subprocess.call(["/usr/bin/dd", "if=/dev/zero", "of=/dev/fb0"])
+        subprocess.call("/usr/bin/dd if=/dev/zero of=/dev/fb0 2> /dev/null", shell=True)
 
     def end(self):
         self.stop = True
