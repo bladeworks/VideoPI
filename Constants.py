@@ -8,7 +8,8 @@ websites = {
         "url": "http://v.qq.com",
         "parser": QQWebParser,
         "icon": "/static/img/favicon/qq.ico",
-        "info": "flv格式，不分段，但不能选择清晰度。"
+        "info": "flv格式，不分段，但不能选择清晰度。",
+        "merge": True
     },
     "qqmp4": {
         "title": "腾讯视频(分段)",
@@ -30,7 +31,8 @@ websites = {
         "url": "http://open.163.com",
         "parser": WangyiWebParser,
         "icon": "/static/img/favicon/wangyi.ico",
-        "info": "不分段"
+        "info": "不分段",
+        "merge": True
     },
     "yinyuetai": {
         "title": "音悦台",
@@ -45,7 +47,7 @@ websites = {
         "parser": KankanWebParser,
         "icon": "/static/img/favicon/kankan.ico",
         "info": "Nothing",
-        "externaldownload": True
+        "merge": True
     },
     "youtube": {
         "title": "Youtube",

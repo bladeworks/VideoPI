@@ -28,8 +28,6 @@ currentVideo = None
 currentPlayerApp = None
 
 player = None
-downloader = None
-merger = None
 playThread = None
 playQueue = Queue()
 imgService = ImgService()
@@ -86,40 +84,19 @@ def fillQueue(urls=[]):
         playQueue.put("next:%s" % currentVideo.nextVideo)
 
 
-def startPlayer(url, playerOnly=False):
+def startPlayer(url):
     logging.info("Start player for %s", url)
-    global player, downloader, current_website, currentVideo, screenWidth, screenHeight
+    global player, current_website, currentVideo, screenWidth, screenHeight
+    currentVideo.playUrl = url
     if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
         logging.info("Use external download tool")
-        if not playerOnly:
-            downloader = subprocess.Popen(["wget", url, "-O", "/tmp/omxpipe", "-o", "download.log"])
-        url = "/tmp/omxpipe"
-    try:
-        args = "-o hdmi"
-        if screenWidth and screenHeight:
-            width, height = (0, 0)
-            try:
-                width, height = currentVideo.getResolution()
-            except:
-                logging.exception("Exception catched")
-            if width and height:
-                logging.debug("screenWidth = %s, screenHeight = %s, width = %s, height = %s" % (screenWidth, screenHeight, width, height))
-                w_rate = screenWidth / width
-                h_rate = screenHeight / height
-                rate = min(w_rate, h_rate)
-                showWidth = rate * width * zoom
-                showHeight = rate * height * zoom
-                widthOff = int((screenWidth - showWidth) / 2)
-                heightOff = int((screenHeight - showHeight) / 2)
-                args += ' --win "%s %s %s %s"' % (0 + widthOff, 0 + heightOff, screenWidth - widthOff, screenHeight - heightOff)
-        logging.debug("args = %s", args)
-        player = OMXPlayer(url, args=args, start_playback=True)
-    except:
-        logging.exception("Got exception")
+        currentVideo.playUrl = "/tmp/omxpipe"
+        currentVideo.download_args = 'wget "%s" -O %s -o /tmp/download.log' % (url, currentVideo.playUrl)
+    player = OMXPlayer(currentVideo, screenWidth, screenHeight)
 
 
 def play_list():
-    global player, playQueue, currentVideo, downloader
+    global player, playQueue, currentVideo
     while True:
         v = playQueue.get()
         logging.info("Get item from playQueue: %s", v)
@@ -156,32 +133,12 @@ def play_list():
                 break
 
 
-def terminateProcess(process, name, additionalkill=None):
-    if process and isProcessAlive(process):
-        logging.warn("Terminate %s" % name)
-        process.terminate()
-        process = None
-        if additionalkill:
-            subprocess.call(["killall", "-9", additionalkill])
-
-
 def terminatePlayer():
     global player
     if player and player.isalive():
         logging.warn("Terminate the previous player")
         player.stop()
         player = None
-
-
-def terminateDownloader():
-    global downloader, merger
-    terminateProcess(downloader, "downloader", "wget")
-    terminateProcess(merger, "merger", "ffmpeg")
-
-
-def terminatePlayerAndDownloader():
-    terminatePlayer()
-    terminateDownloader()
 
 
 def new_play_thread():
@@ -193,15 +150,12 @@ def new_play_thread():
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
-    global merger, downloader
+    global currentVideo
     clearQueue()
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
-    terminateDownloader()
-    outputFileName = '/tmp/all.ts'
-    newFifo(outputFileName)
-    merge_sh = "/tmp/merge.sh"
-    download_sh = "/tmp/download.sh"
-    lines = ["#%s\n" % currentVideo.url]
+    currentVideo.playUrl = "/tmp/all.ts"
+    newFifo(currentVideo.playUrl)
+    download_args = ""
     download_lines = []
     p_list = []
     for idx, v in enumerate(sections[start_idx:]):
@@ -209,24 +163,20 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
-            download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (delta, v, pname, pname))
+            download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
             continue
-        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n" % (v, pname, pname))
-    lines.append('cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log\n' % (" ".join(p_list), outputFileName))
-    with open(merge_sh, 'wb') as f:
-        f.writelines(lines)
-    with open(download_sh, 'wb') as f:
-        f.writelines(download_lines)
-    downloader = subprocess.Popen(["sh", download_sh])
-    fillQueue(urls=[outputFileName])
-    merger = subprocess.Popen(["sh", merge_sh])
+        download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
+    download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), currentVideo.playUrl)
+    download_args += " && ".join(download_lines)
+    currentVideo.download_args = download_args
+    fillQueue(urls=[currentVideo.playUrl])
     new_play_thread()
 
 
 def play_url(redirectToHome=True):
     global player, currentVideo, currentPlayerApp, playQueue, progress
     clearQueue()
-    terminatePlayerAndDownloader()
+    terminatePlayer()
     db_writeHistory(currentVideo)
     logging.info("Playing %s", currentVideo.realUrl)
     # logging.debug("currentVideo = %s", currentVideo)
@@ -236,7 +186,7 @@ def play_url(redirectToHome=True):
         sections = parseM3U()
         func = fillQueue
         args = []
-        if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
+        if 'merge' in websites[current_website] and websites[current_website]['merge']:
             func = merge_play
             args = sections
         logging.debug("currentVideo.progress = %s", currentVideo.progress)
@@ -288,7 +238,7 @@ def parse_url(url, format=None, dbid=None, redirectToHome=True):
     parseResult = parser.parse()
     if isinstance(parseResult, Video):
         with lock:
-            terminatePlayerAndDownloader()
+            terminatePlayer()
             currentVideo = parseResult
             logging.info('currentVideo = %s', str(currentVideo))
             if dbid:
@@ -334,7 +284,7 @@ def control(action):
             if currentVideo.progress > 0:
                 logging.debug("Write last_play_pos to %s", currentVideo.progress)
                 db_writeHistory(currentVideo)
-            terminatePlayerAndDownloader()
+            terminatePlayer()
             player = None
             currentVideo = None
         elif action == "pause":
@@ -346,8 +296,6 @@ def control(action):
         else:
             feedback = "Not implemented action: " + action
     else:
-        if downloader:
-            terminatePlayerAndDownloader()
         feedback = "Sorry but I can't find any player running."
     return feedback
 
@@ -404,9 +352,9 @@ def goto(where, fromPos=-1):
         logging.debug("currentIdx = %s", currentIdx)
     sections = parseM3U()
     if new_progress is not None and c_idx is not None:
-        if 'merge' in websites[current_website] and websites[current_website]['merge'] and len(currentVideo.sections) > 1:
+        if 'merge' in websites[current_website] and websites[current_website]['merge']:
             clearQueue()
-            terminatePlayerAndDownloader()
+            terminatePlayer()
             currentVideo.start_pos = where
             currentVideo.progress = where
             merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
@@ -415,7 +363,7 @@ def goto(where, fromPos=-1):
         else:
             if c_idx != currentIdx:
                 clearQueue()
-                terminatePlayerAndDownloader()
+                terminatePlayer()
                 currentVideo.start_pos = new_progress
                 currentVideo.progress = new_progress
                 fillQueue(sections[c_idx:])
@@ -510,6 +458,7 @@ def getScreenSize():
 
 
 newFifo('/tmp/omxpipe')
+newFifo('/tmp/cmd')
 getScreenSize()
 try:
     run(host='0.0.0.0', port=80, quiet=True)

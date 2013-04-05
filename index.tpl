@@ -46,7 +46,7 @@
 	  		</div>
 			%if currentVideo and int(currentVideo.duration) > 0:
 				<input type="range" id="progressbar" value="0" min="0" max="{{currentVideo.duration}}" data-highlight="true" data-mini="true"
-				%if (not currentVideo.sections) or len(currentVideo.sections) == 1:
+		        % if not('merge' in websites[currentVideo.site] and websites[currentVideo.site]['merge']):
 					disabled="disabled"
 				%end
 				data-theme="b"/>

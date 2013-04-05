@@ -1,97 +1,102 @@
-import pexpect
 import re
+import subprocess
+import os
+import signal
+import logging
 
 from threading import Thread
-from time import sleep
+from config import *
+try:
+    from userPrefs import *
+except:
+    logging.info("Not userPrefs.py found so skip user configuration.")
 
 
 class OMXPlayer(object):
 
-    _FILEPROP_REXP = re.compile(r".*audio streams (\d+) video streams (\d+) chapters (\d+) subtitles (\d+).*")
-    _VIDEOPROP_REXP = re.compile(r".*Video codec ([\w-]+) width (\d+) height (\d+) profile (\d+) fps ([\d.]+).*")
-    _AUDIOPROP_REXP = re.compile(r"Audio codec (\w+) channels (\d+) samplerate (\d+) bitspersample (\d+).*")
-    _STATUS_REXP = re.compile(r"V :\s*([\d.]+).*")
-    _DONE_REXP = re.compile(r"have a nice day.*")
+    _STATUS_REXP = re.compile(r"V :\s*(?P<position>[\d]+).*")
 
-    _LAUNCH_CMD = '/usr/bin/omxplayer.bin -s %s %s'
+    _LAUNCH_CMD = '/usr/bin/omxplayer.bin -s "%s" %s < /tmp/cmd \n'
     _PAUSE_CMD = 'p'
     _TOGGLE_SUB_CMD = 's'
     _QUIT_CMD = 'q'
     _VOLUP_CMD = '+'
     _VOLDOWN_CMD = '-'
 
-    paused = False
-    subtitles_visible = True
+    _SCRIPT_NAME = '/tmp/play.sh'
 
-    def __init__(self, mediafile, args=None, start_playback=False):
-        if not args:
-            args = ""
-        cmd = self._LAUNCH_CMD % (mediafile, args)
-        self._process = pexpect.spawn(cmd, timeout=300)
+    def __init__(self, currentVideo, screenWidth=0, screenHeight=0):
+        self.currentVideo = currentVideo
+        args = self.getArgs(screenWidth, screenHeight)
+        cmd = self._LAUNCH_CMD % (self.currentVideo.playUrl, args)
+        with open(self._SCRIPT_NAME, 'w') as f:
+            if self.currentVideo.download_args:
+                f.write(self.currentVideo.download_args + " &\n")
+            f.write('echo . > /tmp/cmd &\n')
+            f.write(cmd)
+        subprocess.call(["chmod", "+x", self._SCRIPT_NAME])
+        self._process = subprocess.Popen(self._SCRIPT_NAME, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         self.position = 0
-        #self.video = dict()
-        #self.audio = dict()
-        # Get file properties
-        #file_props = self._FILEPROP_REXP.match(self._process.readline()).groups()
-        #(self.audio['streams'], self.video['streams'],
-        # self.chapters, self.subtitles) = [int(x) for x in file_props]
-        # Get video properties
-        # video_props = self._VIDEOPROP_REXP.match(self._process.readline()).groups()
-        # self.video['decoder'] = video_props[0]
-        # self.video['dimensions'] = tuple(int(x) for x in video_props[1:3])
-        # self.video['profile'] = int(video_props[3])
-        # self.video['fps'] = float(video_props[4])
-        # Get audio properties
-        # audio_props = self._AUDIOPROP_REXP.match(self._process.readline()).groups()
-        # self.audio['decoder'] = audio_props[0]
-        # (self.audio['channels'], self.audio['rate'],
-        #  self.audio['bps']) = [int(a) for a in audio_props[1:]]
-
-        #if self.audio['streams'] > 0:
-        #    self.current_audio_stream = 1
-        #    self.current_volume = 0.0
-
         self._position_thread = Thread(target=self._get_position)
         self._position_thread.start()
 
-        if not start_playback:
-            self.toggle_pause()
-        self.toggle_subtitles()
+    def getArgs(self, screenWidth, screenHeight):
+        args = "-o hdmi"
+        try:
+            if screenWidth and screenHeight:
+                width, height = (0, 0)
+                try:
+                    width, height = self.currentVideo.getResolution()
+                except:
+                    logging.exception("Exception catched")
+                if width and height:
+                    logging.debug("screenWidth = %s, screenHeight = %s, width = %s, height = %s" % (screenWidth, screenHeight, width, height))
+                    w_rate = screenWidth / width
+                    h_rate = screenHeight / height
+                    rate = min(w_rate, h_rate)
+                    showWidth = rate * width * zoom
+                    showHeight = rate * height * zoom
+                    widthOff = int((screenWidth - showWidth) / 2)
+                    heightOff = int((screenHeight - showHeight) / 2)
+                    args += ' --win "%s %s %s %s"' % (0 + widthOff, 0 + heightOff, screenWidth - widthOff, screenHeight - heightOff)
+            logging.debug("args = %s", args)
+        except:
+            logging.exception("Got exception")
+        return args
 
     def isalive(self):
-        return self._process.isalive()
+        if self._process.poll() is None:
+            return True
+        return False
 
     def volup(self):
-        self._process.send(self._VOLUP_CMD)
+        self._send_cmd(self._VOLUP_CMD)
 
     def voldown(self):
-        self._process.send(self._VOLDOWN_CMD)
+        self._send_cmd(self._VOLDOWN_CMD)
 
     def _get_position(self):
-        while True:
-            index = self._process.expect([self._STATUS_REXP,
-                                          pexpect.TIMEOUT,
-                                          pexpect.EOF,
-                                          self._DONE_REXP], timeout=300)
-            if index == 1:
-                continue
-            elif index in (2, 3):
-                break
-            else:
-                self.position = float(self._process.match.group(1))
-            sleep(0.05)
+        while self.isalive():
+            out = self._process.stdout.read(20000)
+            if out:
+                r = self._STATUS_REXP.search(out)
+                if r:
+                    self.position = float(r.group('position'))
+
+    def _send_cmd(self, cmd):
+        if self.isalive():
+            logging.debug("Sending %s", cmd)
+            subprocess.Popen("echo -n %s > /tmp/cmd" % cmd, shell=True)
 
     def toggle_pause(self):
-        if self._process.send(self._PAUSE_CMD):
-            self.paused = not self.paused
+        self._send_cmd(self._PAUSE_CMD)
 
     def toggle_subtitles(self):
-        if self._process.send(self._TOGGLE_SUB_CMD):
-            self.subtitles_visible = not self.subtitles_visible
+        self._send_cmd(self._TOGGLE_SUB_CMD)
 
     def stop(self):
-        self._process.send(self._QUIT_CMD)
-        self._process.terminate(force=True)
+        self._send_cmd(self._QUIT_CMD)
+        os.killpg(self._process.pid, signal.SIGTERM)
 
     def set_speed(self):
         raise NotImplementedError

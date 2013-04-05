@@ -32,10 +32,13 @@ class Video:
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
                  dbid=None, availableFormat=[], currentFormat=None,
                  previousVideo=None, nextVideo=None, allRelatedVideo=[],
-                 progress=0, sections=[], start_pos=0):
+                 progress=0, sections=[], start_pos=0, download_args=None, playUrl=None):
         self.title = str(title)
         self.url = url
         self.realUrl = realUrl
+        self.playUrl = playUrl
+        if self.playUrl is None:
+            self.playUrl = realUrl
         self.duration = str(int(float(duration)))
         self.site = site
         self.typeid = typeid
@@ -48,6 +51,7 @@ class Video:
         self.progress = progress
         self.sections = sections
         self.start_pos = start_pos
+        self.download_args = download_args
         self.width, self.height = (0, 0)
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)
@@ -112,7 +116,7 @@ class Video:
 
     def getSectionsFrom(self, where):
         t = 0
-        c_idx = None
+        c_idx = 0
         new_progress = 0
         for idx, val in enumerate(self.sections):
             new_progress = t
@@ -120,9 +124,7 @@ class Video:
             if t >= where:
                 c_idx = idx
                 break
-        if c_idx is not None:
-            return (new_progress, c_idx)
-        return (None, None)
+        return (new_progress, c_idx)
 
     def __str__(self):
         return "url=%s, realUrl=%s, duration=%s, progress=%s, site=%s, typeid=%s, \
