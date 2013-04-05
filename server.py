@@ -49,13 +49,6 @@ def exceptionLogger(type, value, tb):
 sys.excephook = exceptionLogger
 
 
-def isProcessAlive(process):
-    if process:
-        if process.poll() is None:
-            return True
-    return False
-
-
 def clearQueue():
     global playQueue
     logging.info("Clear the queue.")
@@ -206,7 +199,7 @@ def play_url(redirectToHome=True):
 
 def parse_url(url, format=None, dbid=None, redirectToHome=True):
     logging.debug("parse_url %s, format = %s, dbid = %s", url, format, dbid)
-    imgService.end()
+    imgService.begin(LOADING)
     global currentVideo
     if currentVideo and currentVideo.allRelatedVideo:
         relatedUrls = [v['url'] for v in currentVideo.allRelatedVideo]
@@ -247,6 +240,7 @@ def parse_url(url, format=None, dbid=None, redirectToHome=True):
         return play_url(redirectToHome)
     else:
         logging.info('No video found, return the web page.')
+        imgService.end()
         return parseResult
 
 
