@@ -398,6 +398,7 @@ class QQWebParser(QQWebParserMP4):
 class YoukuWebParser(WebParser):
 
     youku_vid_pattern = re.compile("id_(?P<vid>\w+)\.html")
+    youku_url_replace_pattern = re.compile('"url":"(?P<redirect>.*?)&url=(?P<url>.*?)"')
     format2key = {
         1: "flv",
         2: "mp4",
@@ -466,6 +467,7 @@ class YoukuWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url, use_wget=True)
         logging.debug("Finish fetch web")
+        s = self.youku_url_replace_pattern.sub(lambda m: '"url":"%s"' % m.group('url'), responseString)
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
                     (" href='http://", " href='/forward?site=%s&url=http://" % self.site),
                     ('action="http://www.soku.com/search_video"', 'action="/forward"'),
@@ -474,7 +476,7 @@ class YoukuWebParser(WebParser):
                     (' id="headq"', ''),
                     ('http:\/\/v.youku.com\/v_show\/id_', '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)]
         skips = ['href="http://static']
-        return self.replaceResponse(responseString, replaces, skips)
+        return self.replaceResponse(s, replaces, skips)
 
 
 class WangyiWebParser(WebParser):
