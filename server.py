@@ -164,6 +164,8 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
     download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), currentVideo.playUrl)
     download_args += " && ".join(download_lines)
+    if download_to_local:
+        download_args += "\nsleep 5"
     currentVideo.download_args = download_args
     fillQueue(urls=[currentVideo.playUrl])
     new_play_thread()
