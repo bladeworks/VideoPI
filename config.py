@@ -18,3 +18,9 @@ playlistStorage = "/tmp/playlist.m3u"
 
 # database
 dbStorage = "media.db"
+
+# if download to local
+download_to_local = False
+
+# download file, only used if download_to_local is True
+download_file = "/download/all.ts"

@@ -146,8 +146,11 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     global currentVideo
     clearQueue()
     logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
-    currentVideo.playUrl = "/tmp/all.ts"
-    newFifo(currentVideo.playUrl)
+    if download_to_local:
+        currentVideo.playUrl = download_file
+    else:
+        currentVideo.playUrl = "/tmp/all.ts"
+        newFifo(currentVideo.playUrl)
     download_args = ""
     download_lines = []
     p_list = []
