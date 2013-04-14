@@ -45,7 +45,6 @@ class OMXPlayer(object):
     def getFileSizeTest(self):
         return """
 file=%s
-rm $file
 count=0
 while sleep 2
 do
