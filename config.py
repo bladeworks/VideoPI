@@ -24,3 +24,6 @@ download_to_local = False
 
 # download file, only used if download_to_local is True
 download_file = "/download/all.ts"
+
+# download_cache_size, only used if download_to_local is True
+download_cache_size = 5242880

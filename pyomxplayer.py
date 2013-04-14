@@ -32,6 +32,8 @@ class OMXPlayer(object):
         with open(self._SCRIPT_NAME, 'w') as f:
             if self.currentVideo.download_args:
                 f.write(self.currentVideo.download_args + " &\n")
+            if download_to_local:
+                f.write(self.getFileSizeTest())
             f.write('echo . > /tmp/cmd &\n')
             f.write(cmd)
         subprocess.call(["chmod", "+x", self._SCRIPT_NAME])
@@ -39,6 +41,28 @@ class OMXPlayer(object):
         self.position = 0
         self._position_thread = Thread(target=self._get_position)
         self._position_thread.start()
+
+    def getFileSizeTest(self):
+        return """
+file=%s
+rm $file
+count=0
+while sleep 2
+do
+    let "count += 1"
+    if [ $count = 15 ]
+    then
+        break
+    fi
+    if [ -f "$file" ]
+    then
+        size=$(stat -c '%%s' "$file")
+        if [ "$size" -gt %s ]
+        then
+            break
+        fi
+    fi
+done\n""" % (download_file, download_cache_size)
 
     def getArgs(self, screenWidth, screenHeight):
         args = "-o hdmi"
