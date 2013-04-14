@@ -28,6 +28,8 @@ class OMXPlayer(object):
     def __init__(self, currentVideo, screenWidth=0, screenHeight=0):
         self.currentVideo = currentVideo
         args = self.getArgs(screenWidth, screenHeight)
+        if additonal_omxplayer_args:
+            args += " %s" % additonal_omxplayer_args
         cmd = self._LAUNCH_CMD % (self.currentVideo.playUrl, args)
         with open(self._SCRIPT_NAME, 'w') as f:
             if self.currentVideo.download_args:

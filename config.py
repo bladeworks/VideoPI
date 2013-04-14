@@ -16,6 +16,9 @@ logStorage = "/tmp/videopi.log"
 # playlist.m3u
 playlistStorage = "/tmp/playlist.m3u"
 
+# additonal omxplayer args for omxplayer
+additonal_omxplayer_args = ""
+
 # database
 dbStorage = "media.db"
 
