@@ -161,10 +161,16 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
-            download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
+            if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
+                download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
+            else:
+                download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
             continue
         download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
-    download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), currentVideo.playUrl)
+    if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
+        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -ss %s -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), delta, currentVideo.playUrl)
+    else:
+        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), currentVideo.playUrl)
     download_args += " && ".join(download_lines)
     currentVideo.download_args = download_args
     fillQueue(urls=[currentVideo.playUrl])
@@ -397,6 +403,9 @@ def forward():
     if current_website == 'wangyi' and 'vs' in request.query and not url:
         url = "http://so.open.163.com/movie/search/searchprogram/ot0/%s/1.html?vs=%s&pltype=2" % (request.query.vs, request.query.vs)
         logging.debug("The url for wangyi search is: %s", url)
+    if current_website == 'sohu' and 'wd' in request.query and not url:
+        url = "http://so.tv.sohu.com/mts?box=1&wd=%s" % (request.query.wd)
+        logging.debug("The url for sohu search is: %s", url)
     return parse_url(url, format, dbid)
 
 

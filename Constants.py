@@ -56,6 +56,15 @@ websites = {
         "icon": "/static/img/favicon/youtube.ico",
         "info": "Nothing"
     },
+    "sohu": {
+        "title": "搜狐视频",
+        "url": "http://tv.sohu.com",
+        "parser": SohuWebParser,
+        "icon": "/static/img/favicon/sohu.ico",
+        "info": "",
+        "merge": True,
+        "startSupport": True
+    }
 }
 
 # actionToKey = {

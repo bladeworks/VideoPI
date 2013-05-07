@@ -7,7 +7,9 @@ import json
 import logging
 import subprocess
 import time
-from urlparse import urlparse
+import cookielib
+import os
+from urlparse import urlparse, parse_qs
 from struct import unpack
 from config import *
 try:
@@ -18,7 +20,8 @@ except:
 format2keyword = {
     1: "",
     2: "high",
-    3: "super"
+    3: "super",
+    4: "orig"
 }
 
 
@@ -26,7 +29,8 @@ class Video:
     formatDict = {
         1: "普通",
         2: "高清",
-        3: "超清"
+        3: "超清",
+        4: "原画"
     }
 
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
@@ -143,8 +147,22 @@ class WebParser:
     def __init__(self, site, url, format):
         self.site = site
         self.url = url
-        self.format = format
+        self.format = None
+        if format:
+            self.format = int(format)
         self.availableFormat = []
+        self.additionalJS = """
+        <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script>
+            window.onload = function(){
+                $("a:not([href^='/forward?'], [href^='javascript'])").attr("href", function() {
+                    u = this.href.replace(window.location.hostname, '%s');
+                    return "/forward?site=%s&url=" + encodeURIComponent(u);
+                });
+                %s
+            }
+        </script>
+        """ % (self.getSiteUrl(), self.site, self.getJSPerSite())
 
     @abc.abstractmethod
     def parse(self):
@@ -157,6 +175,14 @@ class WebParser:
     @abc.abstractmethod
     def parseWeb(self):
         pass
+
+    def getJSPerSite(self):
+        return ""
+
+    def getSiteUrl(self):
+        siteUrl = urlparse(self.url).hostname
+        logging.debug("siteUrl = %s" % siteUrl)
+        return siteUrl.encode('utf8')
 
     def getVideoUrl(self, **args):
         return self.getM3UFromFlvcd()
@@ -216,11 +242,21 @@ class WebParser:
         return time.timezone / (-60*60)
 
     def fetchWeb(self, url, via_proxy=False, use_wget=False):
+        cookieFile = "/tmp/cookies.%s" % self.site
+        # setup cookie
+        cookie = cookielib.MozillaCookieJar(cookieFile)
+        if os.path.isfile(cookieFile):
+            cookie.load(ignore_discard=True, ignore_expires=True)
+        else:
+            if not os.path.isdir(os.path.dirname(cookieFile)):
+                os.makedirs(os.path.dirname(cookieFile))
+
         logging.debug("Fetch %s", url)
         if use_wget:
             return subprocess.check_output("wget -q -O - %s | cat" % url, shell=True)
         host = urlparse(url).hostname
         headers = {}
+        urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie)))
         if self.getTZ != 8:
             headers = {'User-Agent': 'Mozilla/5.0',
                        'X-Forwarded-For': '220.181.111.158'}
@@ -235,12 +271,19 @@ class WebParser:
                            'X-Sogou-Auth': '81795E50665FE4212A3B4D3391950B74/30/853edc6d49ba4e27',
                            'X-Sogou-Tag': self.calc_sogou_hash(t, host),
                            'X-Sogou-Timestamp': t}
-            urllib2.install_opener(urllib2.build_opener(proxy))
+            urllib2.install_opener(urllib2.build_opener(proxy, urllib2.HTTPCookieProcessor(cookie)))
         try:
             req = urllib2.Request(url.encode('utf8'), None, headers)
         except urllib2.HTTPError:
             req = urllib2.Request(url, None, headers)
-        return urllib2.urlopen(req).read()
+        resp = urllib2.urlopen(req).read()
+        cookie.save(cookieFile, ignore_discard=True, ignore_expires=True)
+        return resp
+
+    def addJS(self, responseString):
+        logging.debug("additionalJS = %s" % self.additionalJS)
+        newRes = responseString.replace("</body>", "%s</body>" % self.additionalJS)
+        return newRes
 
     def getAvailableFormat(self):
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s" % self.url
@@ -252,16 +295,19 @@ class WebParser:
         if "format=super" in responseString:
             self.availableFormat.append(3)
 
-    def getM3UFromFlvcd(self):
-        # 默认清晰度最高的
-        self.getAvailableFormat()
-        if not self.availableFormat:
-            return None
+    def getPlayFormat(self):
         if not self.format:
             if default_format in self.availableFormat:
                 self.format = default_format
             else:
                 self.format = self.availableFormat[-1]
+
+    def getM3UFromFlvcd(self):
+        # 默认清晰度最高的
+        self.getAvailableFormat()
+        if not self.availableFormat:
+            return None
+        self.getPlayFormat()
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s&flag=one&format=%s" % \
             (self.url, format2keyword[self.format])
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
@@ -452,7 +498,12 @@ class YoukuWebParser(WebParser):
         #     "k": "2dcf9f6fbc647634241154a3",
         #     "k2": "17a225161b46a9bc0"
         # },
-        sections = d['data'][0]['segs'][self.format2key[self.format]]
+        try:
+            sections = d['data'][0]['segs'][self.format2key[self.format]]
+        except KeyError:
+            responseString = self.fetchWeb(getVideoInfoUrl, via_proxy=True)
+            d = json.loads(responseString)
+            sections = d['data'][0]['segs'][self.format2key[self.format]]
         previousVideo, nextVideo, allRelatedVideo = None, None, []
         try:
             previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideoes(d['data'][0]['list'])
@@ -692,3 +743,154 @@ class YoutubeWebParser(WebParser):
                     (' href="/', ' href="/forward?site=%s&url=http://www.youtube.com/' % self.site)]
         skips = ['href="http://s.ytimg.com/']
         return self.replaceResponse(responseString, replaces, skips)
+
+
+class SohuWebParser(WebParser):
+
+    sohu_pattern = re.compile('"pageUrl":"(?P<url>.*?)","name":"(?P<title>.*?)","subName":".*?","playLength":(?P<duration>.*?),"')
+    sohu_video_url_pattern = re.compile('http://tv.sohu.com/\d{8}/n\d{9}.shtml.*')
+    sohu_title_pattern = re.compile('<h1 id="video-title".*?>(?P<title>.*?)</h1>', re.DOTALL)
+    sohu_duration_pattern = re.compile(',videoLength: (?P<duration>\d*)')
+    sohu_playlist_id_pattern = re.compile('var playlistId="(?P<playlistId>.*?)";')
+    sohu_vid_pattern = re.compile(",vid: '(?P<vid>\d*)'")
+    sohu_vid1_pattern = re.compile('var vid="(?P<vid>\d*)";')
+    format2vid = {}
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, 'sohu', url, format)
+        self.durationFromJson = None
+
+    def getJSPerSite(self):
+        return """
+        $("#sform").attr("action", "/forward");
+        """
+
+    def parse(self):
+        qs = parse_qs(urlparse(self.url).query)
+        if 'u' in qs:
+            logging.debug("Redirect to %s" % qs['u'])
+            self.url = qs['u'][0]
+        if self.sohu_video_url_pattern.match(self.url):
+            return self.parseVideo()
+        else:
+            return self.parseWeb()
+
+    def getAvailableFormat(self, data):
+        try:
+            if data['norVid'] and 1 not in self.availableFormat:
+                self.availableFormat.append(1)
+                self.format2vid[1] = data['norVid']
+            if data['highVid'] and 2 not in self.availableFormat:
+                self.availableFormat.append(2)
+                self.format2vid[2] = data['highVid']
+            if data['superVid'] and 3 not in self.availableFormat:
+                self.availableFormat.append(3)
+                self.format2vid[3] = data['superVid']
+            if data['oriVid'] and 4 not in self.availableFormat:
+                self.availableFormat.append(4)
+                self.format2vid[4] = data['oriVid']
+        except Exception:
+            logging.exception("Exception catched")
+
+    def getVideoUrl(self):
+        self.sections = []
+        if self.vid:
+            step1url = "http://hot.vrs.sohu.com/vrs_flash.action?vid=%s" % self.vid
+            step1resp = self.fetchWeb(step1url, via_proxy=True)
+            step1json = json.loads(step1resp)
+            data = step1json['data']
+            self.durationFromJson = data['totalDuration']
+            logging.debug('data = %s' % data)
+            self.getAvailableFormat(data)
+            self.getPlayFormat()
+            newvid = self.format2vid[self.format]
+            logging.debug("self.vid = %s" % self.vid)
+            logging.debug("newvid = %s" % newvid)
+            if str(newvid) != str(self.vid):
+                self.vid = newvid
+                logging.debug("Change format to %s" % self.format)
+                return self.getVideoUrl()
+            logging.debug("step1json = %s" % step1json)
+            m3u = ""
+            if 'clipsURL' in data:
+                prot = step1json['prot']
+                clipsUrl = data['clipsURL']
+                clipsDuration = data['clipsDuration']
+                logging.debug("clipsUrl = %s" % clipsUrl)
+                sus = data['su']
+                for idx, clip in enumerate(clipsUrl):
+                    su = sus[idx]
+                    if not su:
+                        raise Exception("Unsupported video")
+                    # clip = http://data.vod.itc.cn/tv/20130415/1092878-6003ee09-26a6-4048-8dbb-469b236a5b5d.mp4
+                    # su = /228/77/cOOLUBvbGJI3RubvcMi2m3.mp4
+                    # step2url = http://data.vod.itc.cn/?prot=2&file=/tv/20130415/1092878-6003ee09-26a6-4048-8dbb-469b236a5b5d.mp4&new=/228/77/cOOLUBvbGJI3RubvcMi2m3.mp4
+                    p = clip.replace('http://data.vod.itc.cn', '')
+                    step2url = "http://data.vod.itc.cn/?prot=%s&file=%s&new=%s" % (prot, p, su)
+                    step2resp = self.fetchWeb(step2url)
+                    # step2resp = http://newflv.sohu.ccgslb.net/|623|71.204.164.241|z6uKgLQaNUhpE9XKezf_smiX58tI3Iuo|1|0
+                    # finalUrl = http://newflv.sohu.ccgslb.net/228/77/cOOLUBvbGJI3RubvcMi2m3.mp4?key=JxhK7fZwKu8K2gQfevIHLJjJ5s8vcAIy
+                    host = step2resp.split('|')[0][:-1]
+                    key = step2resp.split('|')[3]
+                    m3u += "%s%s?key=%s\n" % (host, su, key)
+                    self.sections.append({"no": str(idx), "seconds": str(int(float(clipsDuration[idx])))})
+            with open(playlistStorage, 'wb') as f:
+                f.write('#EXTM3U\n')
+                f.write(m3u)
+            return playlistStorage
+        raise Exception("Can't found video for the url %s" % self.url)
+
+    def parseVideo(self):
+        logging.info("parseVideo %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        playlistId = self.parseField(self.sohu_playlist_id_pattern, responseString, 'playlistId')
+        title = self.parseField(self.sohu_title_pattern, responseString, 'title')
+        if title:
+            title = title.strip().decode('gbk').encode('utf8')
+        self.vid = self.parseField(self.sohu_vid_pattern, responseString, 'vid')
+        if not self.vid:
+            self.vid = self.parseField(self.sohu_vid1_pattern, responseString, 'vid')
+        nextVideo = None
+        previousVideo = None
+        allRelatedVideo = []
+        current = False
+        duration = self.parseField(self.sohu_duration_pattern, responseString, 'duration')
+        if playlistId:
+            getListUrl = "http://hot.vrs.sohu.com/pl/videolist?playlistid=%s&pagesize=200&order=0&callback=sohuHD.play.showPlayListOnePage" % playlistId
+            responseString = self.fetchWeb(getListUrl).decode('gbk').encode('utf8')
+            for u, t, d in self.sohu_pattern.findall(responseString):
+                if current and (not nextVideo):
+                    nextVideo = u
+                relatedVideo = {'title': t, 'url': u, 'current': False}
+                if u == self.url:
+                    if not title:
+                        title = t
+                        logging.debug('t = %s' % title)
+                    current = True
+                    relatedVideo['current'] = True
+                    if not duration:
+                        duration = int(float(d))
+                if not current:
+                    previousVideo = u
+                allRelatedVideo.append(relatedVideo)
+        try:
+            realUrl = self.getVideoUrl()
+        except Exception as e:
+            return e.__str__()
+        if not duration:
+            duration = self.durationFromJson
+            if not duration:
+                duration = 0
+        return Video(title, self.url, realUrl, duration, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format,
+                     allRelatedVideo=allRelatedVideo, previousVideo=previousVideo, nextVideo=nextVideo,
+                     sections=self.sections)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        if 'charset=GBK' in responseString:
+            responseString = responseString.decode('gbk', 'ignore').encode('utf8', 'ignore')
+        logging.debug("Finish fetch web")
+        s = responseString.replace('action="http://so.tv.sohu.com/mts"', 'action="/forward"')
+        return self.addJS(s)
