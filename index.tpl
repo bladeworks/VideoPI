@@ -6,7 +6,8 @@
 		<link href="http://code.jquery.com/mobile/latest/jquery.mobile.css" rel="stylesheet" type="text/css" />
 		<link href="/static/css/videopi.css" rel="stylesheet" type="text/css" />
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
-		<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
+-		<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
+		<script src="/static/js/jquery.mobile.listomatic.js"></script>
 		<meta charset=utf-8 />
 		<title>Raspberry Remote Control</title>
 	</head>
@@ -124,7 +125,7 @@
 	  			<div class="ui-bar">
 	  				<a href="#" onclick="clearHistory();return false" data-role="button" data-inline="true" data-mini="true">Clear all the history</a>
 	  			</div>
-	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView" data-split-icon="delete">
+	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView" data-split-icon="delete" data-listomatic="true">
 	  				%for h in history:
 	                    <li>
 	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit" data-ajax="false">

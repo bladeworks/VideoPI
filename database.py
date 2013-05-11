@@ -18,7 +18,7 @@ def db_getHistory():
     with con:
         c = con.cursor()
         c.execute("SELECT * \
-            FROM media order by last_play_date desc LIMIT 5")
+            FROM media order by last_play_date desc")
         data = c.fetchall()
         videos = []
         for d in data:
