@@ -161,7 +161,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
-            if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
+            if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
                 download_lines.append("wget -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
             else:
                 download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
