@@ -162,11 +162,11 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         p_list.append(pname)
         if idx == 0:
             if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
-                download_lines.append("wget -o /tmp/download.log -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
+                download_lines.append("wget -o /tmp/download.log -UMozilla/5.0 -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
             else:
                 download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
             continue
-        download_lines.append("wget -o /tmp/download.log -UMozilla/5.0 -q -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
+        download_lines.append("wget -o /tmp/download.log -UMozilla/5.0 -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (v, pname, pname))
     if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
         download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -ss %s -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), delta, currentVideo.playUrl)
     else:
