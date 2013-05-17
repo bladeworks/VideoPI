@@ -50,7 +50,7 @@ sys.excephook = exceptionLogger
 
 
 def getWgetCmd():
-    return "wget --load-cookies=/tmp/cookies.%s -o /tmp/download.log -UMozilla/5.0" % current_website
+    return "wget --retry-connrefused --load-cookies=/tmp/cookies.%s -o /tmp/download.log -UMozilla/5.0" % current_website
 
 def clearQueue():
     global playQueue
