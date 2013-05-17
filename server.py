@@ -49,9 +49,6 @@ def exceptionLogger(type, value, tb):
 sys.excephook = exceptionLogger
 
 
-def getWgetCmd():
-    return "wget --retry-connrefused --load-cookies=/tmp/cookies.%s -o /tmp/download.log -UMozilla/5.0" % current_website
-
 def clearQueue():
     global playQueue
     logging.info("Clear the queue.")
@@ -89,7 +86,7 @@ def startPlayer(url):
         currentVideo.playUrl = "/tmp/omxpipe"
         if download_to_local:
             currentVideo.playUrl = download_file
-        currentVideo.download_args = '%s "%s" -O %s' % (getWgetCmd(), url, currentVideo.playUrl)
+        currentVideo.download_args = getWgetCmd(url, currentVideo.playUrl)
     player = OMXPlayer(currentVideo, screenWidth, screenHeight)
 
 
@@ -147,6 +144,15 @@ def new_play_thread():
         playThread.start()
 
 
+def getWgetCmd(url, output="-"):
+    return wrapRetry("wget --retry-connrefused --load-cookies=/tmp/cookies.%s -o /tmp/download.log -UMozilla/5.0 -O %s %s" \
+           % (current_website, output, url))
+
+
+def wrapRetry(cmd, max_retry=20):
+    return "retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; retry=$(( $retry + 1 )); done" % (max_retry, cmd)
+
+
 def merge_play(sections, where=0, start_idx=0, delta=0):
     global currentVideo
     clearQueue()
@@ -165,11 +171,11 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         p_list.append(pname)
         if idx == 0:
             if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
-                download_lines.append("%s -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (getWgetCmd(), v, pname, pname))
+                download_lines.append("%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (getWgetCmd(v), pname, pname))
             else:
                 download_lines.append("ffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (delta, v, pname, pname))
             continue
-        download_lines.append("%s -O - \"%s\" | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (getWgetCmd(), v, pname, pname))
+        download_lines.append("%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log" % (getWgetCmd(v), pname, pname))
     if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
         download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -ss %s -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), delta, currentVideo.playUrl)
     else:
