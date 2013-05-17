@@ -33,7 +33,7 @@ class OMXPlayer(object):
         cmd = self._LAUNCH_CMD % (self.currentVideo.playUrl, args)
         with open(self._SCRIPT_NAME, 'w') as f:
             if self.currentVideo.download_args:
-                f.write("{ %s } &\n" % self.currentVideo.download_args)
+                f.write("{\n %s \n} &\n" % self.currentVideo.download_args)
             if download_to_local:
                 f.write(self.getFileSizeTest())
             f.write('echo . > /tmp/cmd &\n')
