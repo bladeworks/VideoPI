@@ -145,8 +145,8 @@ def new_play_thread():
 
 
 def getWgetCmd(url, output="-"):
-    return wrapRetry('wget --retry-connrefused --load-cookies=/tmp/cookies.%s -o /tmp/download.log -UMozilla/5.0 -O %s "%s"' \
-           % (current_website, output, url))
+    return wrapRetry('wget -o /tmp/download.log -UMozilla/5.0 -O %s "%s"' \
+           % (output, url))
 
 
 def wrapRetry(cmd, max_retry=20):
