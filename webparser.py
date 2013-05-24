@@ -314,6 +314,8 @@ class WebParser:
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
         if not m3u:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
+        if not m3u:
+            raise Exception("Can't parse the video.")
         with open(playlistStorage, 'wb') as f:
             f.write('#EXTM3U\n')
             f.write(m3u)
@@ -330,6 +332,23 @@ class WebParser:
         for skip in skips:
             ret = ret.replace("%s%s" % (skip_pre, skip), skip)
         return ret
+
+
+class UnknownParser(WebParser):
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, "unknown", url, format)
+
+    def parse(self):
+        return self.parseVideo()
+
+    def parseVideo(self):
+        return Video("unknown", self.url, self.getVideoUrl(), 0, self.site,
+                     availableFormat=self.availableFormat, currentFormat=self.format)
+
+    def parseWeb(self):
+        pass
+
 
 
 class QQWebParserMP4(WebParser):

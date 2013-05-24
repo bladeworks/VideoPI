@@ -64,6 +64,10 @@ websites = {
         "info": "",
         "merge": True,
         "startSupport": True
+    },
+    "unknown": {
+        "title": "Unknown",
+        "parser": UnknownParser
     }
 }
 

@@ -107,15 +107,17 @@
 	  			<h3>Browse</h3>
 	  			<ul data-role="listview" data-inset="true" data-theme="c" data-split-icon="info" data-split-theme="e">
 		  			%for site, data in iter(sorted(websites.iteritems())):
-		  			<li>
-			  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
-			  				{{data['title']}}
-			  			</a>	
-			  			<a href="#{{site}}info" data-rel="popup" data-position-to="window" data-transition="pop">Details</a>
-			  		</li>
-			  		<div data-role="popup" id="{{site}}info" class="ui-content" data-theme="e">
-			  			<p>{{data['info']}}</p>
-					</div>	
+			  			%if 'url' in data:
+			  			<li>
+				  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
+				  				{{data['title']}}
+				  			</a>	
+				  			<a href="#{{site}}info" data-rel="popup" data-position-to="window" data-transition="pop">Details</a>
+				  		</li>
+				  		<div data-role="popup" id="{{site}}info" class="ui-content" data-theme="e">
+				  			<p>{{data['info']}}</p>
+						</div>	
+						%end
 		  			%end
 		  		</ul>
 	  		</div>
@@ -136,6 +138,16 @@
                     %end
 	  			</ul>
 	  		</div>
+	  		<div data-role="collapsible" data-collapsed="true" data-theme="d" data-content-theme="d">
+	  			<h3>Play a URL</h3>
+		  		<div>
+		  			<form action="/forward" data-ajax="false">
+		  				<input type="text" data-clear-btn="true" name="url"/>
+		  				<input type="hidden" name="site" value="unknown"/>
+		  				<input type="submit" value="Go"/>
+		  			</form>
+		  		</div>
+		  	</div>
 	  	</div>
 	  	<div data-role="footer" data-theme="a">
 	  		<h4>Powered by blade&nbsp;&copy;&nbsp;<b>bladeworks</b></h4>
