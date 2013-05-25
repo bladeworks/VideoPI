@@ -318,7 +318,7 @@ class WebParser:
             raise Exception("Can't parse the video.")
         with open(playlistStorage, 'wb') as f:
             f.write('#EXTM3U\n')
-            f.write(m3u)
+            f.write(m3u.replace('|http', '\nhttp'))
         return playlistStorage
 
     def replaceResponse(self, responseString, replaces, skips=[]):
