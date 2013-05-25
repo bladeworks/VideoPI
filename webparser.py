@@ -316,9 +316,11 @@ class WebParser:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
         if not m3u:
             raise Exception("Can't parse the video.")
+        if m3u.endswith('|'):
+            m3u = m3u[:-1]
         with open(playlistStorage, 'wb') as f:
             f.write('#EXTM3U\n')
-            f.write(m3u.replace('|http', '\nhttp'))
+            f.write(m3u.replace('|http', '\nhttp').rpartition('|')[0])
         return playlistStorage
 
     def replaceResponse(self, responseString, replaces, skips=[]):
