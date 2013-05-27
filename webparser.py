@@ -320,7 +320,7 @@ class WebParser:
             m3u = m3u[:-1]
         with open(playlistStorage, 'wb') as f:
             f.write('#EXTM3U\n')
-            f.write(m3u.replace('|http', '\nhttp').rpartition('|')[0])
+            f.write(m3u.replace('|http', '\nhttp'))
         return playlistStorage
 
     def replaceResponse(self, responseString, replaces, skips=[]):
