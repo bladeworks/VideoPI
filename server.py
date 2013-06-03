@@ -172,7 +172,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         if idx == 0:
             if download_program == 'axel':
                 fname = "/tmp/f%s" % (idx % 3)
-                download_lines.append("{\nrm -f %s && axel -o %s \"%s\" &>download.log && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, delta, fname, pname, pname))
+                download_lines.append("{\nrm -f %s && axel -o %s \"%s\" &>/tmp/download.log && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, delta, fname, pname, pname))
                 continue
             if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
                 download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
@@ -183,7 +183,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
         elif download_program == 'axel':
             fname = "/tmp/f%s" % (idx % 3)
-            download_lines.append("{\nrm -f %s && axel -o %s \"%s\" &>download.log && nice -n 30 ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, fname, pname, pname))
+            download_lines.append("{\nrm -f %s && axel -o %s \"%s\" &>/tmp/download.log && nice -n 30 ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, fname, pname, pname))
         else:
             download_lines.append("{\nffmpeg -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (v, pname, pname))
     if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
