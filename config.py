@@ -33,3 +33,6 @@ download_cache_size = 5242880
 
 # download program (None or "wget")
 download_program = "wget"
+
+# download thread for axel
+download_threads = 5
