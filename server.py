@@ -18,7 +18,7 @@ from config import *
 try:
     from userPrefs import *
 except:
-    logging.info("Not userPrefs.py found so skip user configuration.")
+    logging.info("No userPrefs.py found so skip user configuration.")
 import bottle
 
 bottle.debug = True
@@ -81,12 +81,6 @@ def startPlayer(url):
     logging.info("Start player for %s", url)
     global player, current_website, currentVideo, screenWidth, screenHeight
     currentVideo.playUrl = url
-    if current_website and 'externaldownload' in websites[current_website] and websites[current_website]['externaldownload']:
-        logging.info("Use external download tool")
-        currentVideo.playUrl = "/tmp/omxpipe"
-        if download_to_local:
-            currentVideo.playUrl = download_file
-        currentVideo.download_args = getWgetCmd(url, currentVideo.playUrl)
     player = OMXPlayer(currentVideo, screenWidth, screenHeight)
 
 
@@ -145,16 +139,24 @@ def new_play_thread():
 
 
 def getWgetCmd(url, output="-"):
-    return wrapRetry('wget -o /tmp/download.log -UMozilla/5.0 -O %s "%s"' \
-           % (output, url))
+    return wrapRetry('wget -o /tmp/download.log -UMozilla/5.0 -O %s "%s"'
+                     % (output, url))
 
 
 def getAxelCmd(url, output):
-    return "rm -f %s && %s " % (output, wrapRetry('axel -n %s -o %s "%s" &>/tmp/download.log' % (download_threads, output, url)))
+    return "rm -f %s && %s " % (output, wrapRetry('axel -n %s -o %s "%s" &>/tmp/download.log'
+           % (download_threads, output, url)))
 
 
 def wrapRetry(cmd, max_retry=20):
-    return "retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; retry=$(( $retry + 1 )); if [ $retry - eq %s ]; then exit 1; fi; done" % (max_retry, cmd, max_retry)
+    return ("retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; "
+            "retry=$(( $retry + 1 )); if [ $retry - eq %s ]; then exit 1; fi; done") \
+        % (max_retry, cmd, max_retry)
+
+
+def getFfmpegCmd(ss, inputFile, outputFile):
+    return 'nice -n 30 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+           % (ss, inputFile, outputFile, outputFile)
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
@@ -169,30 +171,28 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     download_args = ""
     download_lines = []
     p_list = []
+    dp = download_program
+    if len(sections[start_idx]) == 1:
+        dp = "wget"
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         fname = "/tmp/f%s" % (idx % 3)
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
-            if download_program == 'axel':
-                download_lines.append("{\n%s && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getAxelCmd(v, fname), delta, fname, pname, pname))
+            if dp == 'axel':
+                download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(delta, fname, pname)))
                 continue
-            if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
-                download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
-            else:
-                download_lines.append("{\nffmpeg -ss %s -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (delta, v, pname, pname))
+            download_lines.append("{\n%s\n}" % getFfmpegCmd(delta, v, pname))
             continue
-        if download_program == 'wget':
-            download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
-        elif download_program == 'axel':
-            download_lines.append("{\n%s && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getAxelCmd(v, fname), delta, fname, pname, pname))
+        if dp == 'wget':
+            download_lines.append("{\n%s | %s\n}" % (getWgetCmd(v), getFfmpegCmd(0, "-", pname)))
+        elif dp == 'axel':
+            download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(0, fname, pname)))
         else:
-            download_lines.append("{\nffmpeg -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (v, pname, pname))
-    if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
-        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -ss %s -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), delta, currentVideo.playUrl)
-    else:
-        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), currentVideo.playUrl)
+            download_lines.append("{\n%s\n}" % getFfmpegCmd(0, v, pname))
+    download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                     % (" ".join(p_list), currentVideo.playUrl)
     download_args += " && ".join(download_lines)
     currentVideo.download_args = download_args
     fillQueue(urls=[currentVideo.playUrl])
@@ -423,7 +423,8 @@ def forward():
         url = "http://v.qq.com/search.html"
         logging.debug("The url for youku search is: %s", url)
     if current_website == 'wangyi' and 'vs' in request.query and not url:
-        url = "http://so.open.163.com/movie/search/searchprogram/ot0/%s/1.html?vs=%s&pltype=2" % (request.query.vs, request.query.vs)
+        url = "http://so.open.163.com/movie/search/searchprogram/ot0/%s/1.html?vs=%s&pltype=2" \
+            % (request.query.vs, request.query.vs)
         logging.debug("The url for wangyi search is: %s", url)
     if current_website == 'sohu' and 'wd' in request.query and not url:
         url = "http://so.tv.sohu.com/mts?box=1&wd=%s" % (request.query.wd)

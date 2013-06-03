@@ -62,8 +62,7 @@ websites = {
         "parser": SohuWebParser,
         "icon": "/static/img/favicon/sohu.ico",
         "info": "",
-        "merge": True,
-        "startSupport": True
+        "merge": True
     },
     "unknown": {
         "title": "Unknown",
