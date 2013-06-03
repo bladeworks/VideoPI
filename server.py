@@ -170,6 +170,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
+            if download_program == 'axel':
+                fname = "/tmp/f%s" % (idx % 3)
+                download_lines.append("{\nrm -f %s && axel -o %s \"%s\" && ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, delta, fname, pname, pname))
+                continue
             if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
                 download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
             else:
