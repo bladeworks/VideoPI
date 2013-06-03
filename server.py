@@ -172,9 +172,9 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     download_lines = []
     p_list = []
     dp = download_program
-    if len(sections[start_idx]) == 1:
+    if len(sections[start_idx:]) == 1:
         dp = "wget"
-    logging.info("db = %s", dp)
+    logging.info("dp = %s", dp)
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
         fname = "/tmp/f%s" % (idx % 3)
