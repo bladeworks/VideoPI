@@ -177,7 +177,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     logging.info("dp = %s", dp)
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
-        fname = "/tmp/f%s" % (idx % 3)
+        fname = "/tmp/f%s" % dp
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
