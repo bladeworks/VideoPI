@@ -149,8 +149,12 @@ def getWgetCmd(url, output="-"):
            % (output, url))
 
 
+def getAxelCmd(url, output):
+    return "rm -f %s && %s " % (output, wrapRetry('axel -n %s -o %s "%s" &>/tmp/download.log' % (download_threads, output, url)))
+
+
 def wrapRetry(cmd, max_retry=20):
-    return "retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; retry=$(( $retry + 1 )); done" % (max_retry, cmd)
+    return "retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; retry=$(( $retry + 1 )); if [ $retry - eq %s ]; then exit 1; fi; done" % (max_retry, cmd, max_retry)
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
@@ -167,12 +171,12 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     p_list = []
     for idx, v in enumerate(sections[start_idx:]):
         pname = "/tmp/p%s" % idx
+        fname = "/tmp/f%s" % (idx % 3)
         newFifo(pname)
         p_list.append(pname)
         if idx == 0:
             if download_program == 'axel':
-                fname = "/tmp/f%s" % (idx % 3)
-                download_lines.append("{\nrm -f %s && axel -n 20 -o %s \"%s\" &>/tmp/download.log && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, delta, fname, pname, pname))
+                download_lines.append("{\n%s && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getAxelCmd(v, fname), delta, fname, pname, pname))
                 continue
             if ("startSupport" in websites[current_website] and websites[current_website]['startSupport']) or delta <= 0:
                 download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
@@ -182,8 +186,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         if download_program == 'wget':
             download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
         elif download_program == 'axel':
-            fname = "/tmp/f%s" % (idx % 3)
-            download_lines.append("{\nrm -f %s && axel -n %s -o %s \"%s\" &>/tmp/download.log && nice -n 30 ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, download_threads, fname, v, fname, pname, pname))
+            download_lines.append("{\n%s && nice -n 30 ffmpeg -ss %s -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getAxelCmd(v, fname), delta, fname, pname, pname))
         else:
             download_lines.append("{\nffmpeg -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (v, pname, pname))
     if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
