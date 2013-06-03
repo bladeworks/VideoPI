@@ -179,9 +179,9 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             download_lines.append("{\n%s | ffmpeg -i - -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (getWgetCmd(v), pname, pname))
         elif download_program == 'axel':
             fname = "/tmp/f%s" % (idx % 3)
-            download_lines.append("{rm -f %s && axel -o %s \"%s\" && ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, fname, pname, pname))
+            download_lines.append("{\nrm -f %s && axel -o %s \"%s\" && ffmpeg -i %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (fname, fname, v, fname, pname, pname))
         else:
-            download_lines.append("{ffmpeg -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (v, pname, pname))
+            download_lines.append("{\nffmpeg -i \"%s\" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2> %s.log\n}" % (v, pname, pname))
     if "startSupport" in websites[current_website] and websites[current_website]['startSupport']:
         download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -ss %s -f mpegts %s 2> /tmp/merge.log &\n' % (" ".join(p_list), delta, currentVideo.playUrl)
     else:
