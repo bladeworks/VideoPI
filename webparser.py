@@ -358,6 +358,8 @@ class UnknownParser(WebParser):
 
 class ClubWebParser(WebParser):
 
+    ua = 'letvsmart'
+
     def __init__(self, url, format):
         WebParser.__init__(self, "club", url, format)
 
@@ -389,7 +391,7 @@ class ClubWebParser(WebParser):
     def parseVideo(self):
         self.url = self.url.replace('playHothtml5', 'playHot')
         logging.info("parseVideo: %s", self.url)
-        responseString = self.fetchWeb(self.url)
+        responseString = self.fetchWeb(self.url, ua=self.ua)
         root = ET.fromstring(responseString)
         title = self.getElementText(root, 'name')
         total = int(self.getElementText(root, 'total'))
@@ -403,7 +405,7 @@ class ClubWebParser(WebParser):
             step2url = e.text
             if step2url.startswith('http://g3.letv.com'):
                 break
-        responseString = self.fetchWeb(step2url)
+        responseString = self.fetchWeb(step2url, ua=self.ua)
         videoUrl = self.getElementText(ET.fromstring(responseString), 'nodelist/node').replace('&amp;', '&')
         logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
@@ -412,10 +414,8 @@ class ClubWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url)
+        responseString = self.fetchWeb(self.url, ua=self.ua)
         logging.debug("Finish fetch web")
-        if 'nopctip.html' in responseString:
-            logging.debug(responseString)
         return responseString.replace('var OS=getOS().split(":");', 'var OS="LetvSmart".split(":");')
 
 
