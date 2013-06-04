@@ -365,7 +365,7 @@ class ClubWebParser(WebParser):
 
     def parse(self):
         if "playHot?id=" in self.url or "playHothtml5?id" in self.url:
-            return self.parseVideo
+            return self.parseVideo()
         else:
             return self.parseWeb()
 
