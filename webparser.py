@@ -403,7 +403,7 @@ class ClubWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url, ua=self.ua)
         logging.debug("Finish fetch web")
-        return self.addJS(responseString)
+        return responseString
 
 
 class QQWebParserMP4(WebParser):
