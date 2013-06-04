@@ -452,10 +452,12 @@ def error404(error):
         return
     p_results = urlparse(request.url)
     to_replace = p_results.scheme + "://" + p_results.netloc
-    print to_replace
-    redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
-                                        request.url.replace(to_replace,
-                                        websites[current_website]['url']))
+    if request.url.endswith('.css'):
+        redirectTo = request.url.replace(to_replace, websites[current_website]['url'])
+    else:
+        redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
+                                            request.url.replace(to_replace,
+                                            websites[current_website]['url']))
     if current_website == 'youku' and request.url.startswith("/search_video"):
         redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
                                             request.url.replace(to_replace,
