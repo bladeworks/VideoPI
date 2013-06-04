@@ -400,6 +400,13 @@ class ClubWebParser(WebParser):
         if total > 1:
             title += '-%s' % series
         videoUrl = self.getElementText(root, 'medias/media/seg/newurl').replace('&amp;', '&')
+        step2url = None
+        for e in root.findall('medias/media/seg/gslblist/gslb/subgslb'):
+            step2url = e.text
+            if step2url.startswith('http://g3.letv.com'): break
+        responseString = self.fetchWeb(step2url, ua=self.ua)
+        videoUrl = self.getElementText(ET.fromstring(responseString), 'nodelist/node').replace('&amp;', '&')
+        logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
         return Video(title.encode('utf8'), self.url, videoUrl, duration, self.site,
                      previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
