@@ -394,8 +394,8 @@ class ClubWebParser(WebParser):
         title = self.getElementText(root, 'name')
         total = int(self.getElementText(root, 'total'))
         series = int(self.getElementText(root, 'series'))
-        videoUrl = self.getElementText(root, 'newurl').replace('&amp;', '&')
-        duration = self.getElementText(root, 'duration')
+        videoUrl = self.getElementText(root, 'medias/media/seg/newurl').replace('&amp;', '&')
+        duration = self.getElementText(root, 'medias/media/seg/duration')
         previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideos(total, series)
         return Video(title, self.url, videoUrl, duration, self.site,
                      previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
