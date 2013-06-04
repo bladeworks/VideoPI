@@ -68,7 +68,7 @@ websites = {
         "title": "影迷俱乐部",
         "url": "http://videozaixian.com",
         "parser": ClubWebParser,
-        "icon": "/static/img/favicon/club.ico",
+        "icon": "/static/img/favicon/club.png",
         "info": "",
         "merge": True
     },
