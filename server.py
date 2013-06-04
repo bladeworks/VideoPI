@@ -8,6 +8,7 @@ import sys
 import os
 import time
 import urllib
+import urllib2
 from urlparse import urlparse
 from threading import Thread, Lock
 from Queue import Queue
@@ -448,7 +449,6 @@ def restart():
 @error(404)
 def error404(error):
     logging.debug("404 on url: %s", request.url)
-    logging.debug("query_string: %s", request.query_string)
     if request.url == "http://192.168.1.100/jsonrpc":
         return
     p_results = urlparse(request.url)
@@ -457,12 +457,12 @@ def error404(error):
         redirectTo = request.url.replace(to_replace, websites[current_website]['url'])
     else:
         redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
-                                            request.url.replace(to_replace,
-                                            websites[current_website]['url']))
+                                            urllib2.quote(request.url.replace(to_replace,
+                                            websites[current_website]['url'])))
     if current_website == 'youku' and request.url.startswith("/search_video"):
         redirectTo = "%s?site=%s&url=%s" % ('/forward', current_website,
-                                            request.url.replace(to_replace,
-                                            "http://www.soku.com"))
+                                            urllib2.quote(request.url.replace(to_replace,
+                                            "http://www.soku.com")))
     logging.debug("Redirect to %s", redirectTo)
     response.set_header('location', redirectTo)
     response.status = 303
