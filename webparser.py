@@ -387,7 +387,8 @@ class ClubWebParser(WebParser):
         return (previousVideo, nextVideo, allRelatedVideo)
 
     def parseVideo(self):
-        url = self.url.replace('playHothtml5', 'playHot')
+        self.url = self.url.replace('playHothtml5', 'playHot')
+        logging.info("parseVideo: %s", self.url)
         responseString = self.fetchWeb(url, ua=self.ua)
         root = ET.fromstring(responseString)
         title = self.getElementText(root, 'name')
