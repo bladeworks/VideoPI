@@ -9,6 +9,10 @@ import subprocess
 import time
 import cookielib
 import os
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 from urlparse import urlparse, parse_qs
 from struct import unpack
 from config import *
@@ -241,7 +245,7 @@ class WebParser:
     def getTZ(self):
         return time.timezone / (-60*60)
 
-    def fetchWeb(self, url, via_proxy=False, use_wget=False):
+    def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
         cookieFile = "/tmp/cookies.%s" % self.site
         # setup cookie
         cookie = cookielib.MozillaCookieJar(cookieFile)
@@ -252,19 +256,19 @@ class WebParser:
                 os.makedirs(os.path.dirname(cookieFile))
 
         logging.debug("Fetch %s", url)
-        if use_wget:
+        if download_program == 'wget':
             return subprocess.check_output("wget -q -O - %s | cat" % url, shell=True)
         host = urlparse(url).hostname
         headers = {}
         urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie)))
         if self.getTZ != 8:
-            headers = {'User-Agent': 'Mozilla/5.0',
+            headers = {'User-Agent': ua,
                        'X-Forwarded-For': '220.181.111.158'}
             proxy = urllib2.ProxyHandler({})
             if via_proxy:
                 proxy = urllib2.ProxyHandler({'http': 'h0.edu.bj.ie.sogou.com'})
                 t = hex(int(time.time()))[2:].rstrip('L').zfill(8)
-                headers = {'User-Agent': 'Mozilla/5.0',
+                headers = {'User-Agent': ua,
                            'Host': host,
                            'X-Forwarded-For': '220.181.111.158',
                            'Proxy-Connection': 'keep-alive',
@@ -351,6 +355,53 @@ class UnknownParser(WebParser):
     def parseWeb(self):
         pass
 
+
+class ClubWebParser(WebParser):
+
+    def __init__(self, url, format):
+        WebParser.__init__(self, "club", url, format)
+
+    def parse(self):
+        if "playHot?id=" in self.url or "playHothtml5?id" in self.url:
+            return self.parseVideo
+        else:
+            return self.parseWeb()
+
+    def getElementText(self, element, match):
+        e = element.find(match)
+        if e is not None:
+            return e.text()
+
+    def getRelatedVideos(self, total, series):
+        previousVideo, nextVideo = None, None
+        allRelatedVideo = []
+        if total > 1:
+            if series > 1:
+                previousVideo = self.url.replace('series=%s' % series, 'series=%s' % (series - 1))
+            if series < total:
+                nextVideo = self.url.replace('series=%s' % series, 'series=%s' % (series + 1))
+            for i in range(total):
+                allRelatedVideo.append(self.url.replace('series=%s' % series, 'series=%s' % (i + 1)))
+        return (previousVideo, nextVideo, allRelatedVideo)
+
+    def parseVideo(self):
+        url = self.url.replace('playHothtml5', 'playHot')
+        responseString = self.fetchWeb(url)
+        root = ET.fromstring(responseString)
+        title = self.getElementText(root, 'name')
+        total = int(self.getElementText(root, 'total'))
+        series = int(self.getElementText(root, 'series'))
+        videoUrl = self.getElementText(root, 'newurl').replace('&amp;', '&')
+        duration = self.getElementText(root, 'duration')
+        previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideos(total, series)
+        return Video(title, self.url, videoUrl, duration, self.site,
+                     previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
+
+    def parseWeb(self):
+        logging.info("parseWeb %s", self.url)
+        responseString = self.fetchWeb(self.url)
+        logging.debug("Finish fetch web")
+        return self.addJS(responseString)
 
 
 class QQWebParserMP4(WebParser):
@@ -537,7 +588,7 @@ class YoukuWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url, use_wget=True)
+        responseString = self.fetchWeb(self.url, download_program='wget')
         logging.debug("Finish fetch web")
         s = self.youku_url_replace_pattern.sub(lambda m: '"url":"%s"' % m.group('url'), responseString)
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),

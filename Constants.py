@@ -64,6 +64,14 @@ websites = {
         "info": "",
         "merge": True
     },
+    "club": {
+        "title": "影迷俱乐部",
+        "url": "http://videozaixian.com",
+        "parser": ClubWebParser,
+        "icon": "/static/img/favicon/club.ico",
+        "info": "",
+        "merge": True
+    },
     "unknown": {
         "title": "Unknown",
         "parser": UnknownParser
