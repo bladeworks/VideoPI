@@ -201,6 +201,13 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     new_play_thread()
 
 
+def getSections():
+    if currentVideo.realUrl == playlistStorage:
+        return parseM3U()
+    else:
+        return [currentVideo.realUrl]
+
+
 def play_url(redirectToHome=True):
     global player, currentVideo, currentPlayerApp, playQueue, progress
     clearQueue()
@@ -211,7 +218,7 @@ def play_url(redirectToHome=True):
     new_play_thread()
     if currentVideo.realUrl == playlistStorage:
         # Because omxplayer doesn't support list we have to play one by one.
-        sections = parseM3U()
+        sections = getSections()
         func = fillQueue
         args = []
         if 'merge' in websites[current_website] and websites[current_website]['merge']:
@@ -379,7 +386,7 @@ def goto(where, fromPos=-1):
     if fromPos == -1:
         currentIdx = currentVideo.getCurrentIdx()
         logging.debug("currentIdx = %s", currentIdx)
-    sections = parseM3U()
+    sections = getSections()
     if new_progress is not None and c_idx is not None:
         if 'merge' in websites[current_website] and websites[current_website]['merge']:
             clearQueue()
