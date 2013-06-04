@@ -417,7 +417,8 @@ class ClubWebParser(WebParser):
         responseString = self.fetchWeb(self.url, ua=self.ua)
         logging.debug("Finish fetch web")
         return responseString.replace('var OS=getOS().split(":");', 'var OS="LetvSmart".split(":");').\
-            replace('http://www.videozaixian.com:80/js/nopc.js', '/js/nopc.js')
+            replace('http://www.videozaixian.com:80/js/nopc.js', '/js/nopc.js').\
+            replace('http://www.videozaixian.com:80/js/play.js', '/js/play.js')
 
 
 class QQWebParserMP4(WebParser):
