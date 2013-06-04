@@ -414,7 +414,9 @@ class ClubWebParser(WebParser):
         logging.info("parseWeb %s", self.url)
         responseString = self.fetchWeb(self.url)
         logging.debug("Finish fetch web")
-        return responseString.replace('var OS=getOS().split(":");', 'var OS="LetvSmart".split(":");alert(OS[0]);')
+        if 'nopctip.html' in responseString:
+            logging.debug(responseString)
+        return responseString.replace('var OS=getOS().split(":");', 'var OS="LetvSmart".split(":");')
 
 
 class QQWebParserMP4(WebParser):
