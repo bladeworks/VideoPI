@@ -391,7 +391,7 @@ class ClubWebParser(WebParser):
         logging.info("parseVideo: %s", self.url)
         responseString = self.fetchWeb(self.url, ua=self.ua)
         root = ET.fromstring(responseString)
-        title = self.getElementText(root, 'name')
+        title = self.getElementText(root, 'name').encode('utf8')
         total = int(self.getElementText(root, 'total'))
         series = int(self.getElementText(root, 'series'))
         videoUrl = self.getElementText(root, 'medias/media/seg/newurl').replace('&amp;', '&')
