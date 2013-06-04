@@ -358,6 +358,8 @@ class UnknownParser(WebParser):
 
 class ClubWebParser(WebParser):
 
+    ua = 'letvsmart'
+
     def __init__(self, url, format):
         WebParser.__init__(self, "club", url, format)
 
@@ -386,7 +388,7 @@ class ClubWebParser(WebParser):
 
     def parseVideo(self):
         url = self.url.replace('playHothtml5', 'playHot')
-        responseString = self.fetchWeb(url)
+        responseString = self.fetchWeb(url, ua=self.ua)
         root = ET.fromstring(responseString)
         title = self.getElementText(root, 'name')
         total = int(self.getElementText(root, 'total'))
@@ -399,7 +401,7 @@ class ClubWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url)
+        responseString = self.fetchWeb(self.url, ua=self.ua)
         logging.debug("Finish fetch web")
         return self.addJS(responseString)
 
