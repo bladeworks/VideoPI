@@ -374,7 +374,7 @@ class ClubWebParser(WebParser):
         if e is not None:
             return e.text
 
-    def getRelatedVideos(self, total, series):
+    def getRelatedVideos(self, total, series, title):
         previousVideo, nextVideo = None, None
         allRelatedVideo = []
         if total > 1:
@@ -383,7 +383,9 @@ class ClubWebParser(WebParser):
             if series < total:
                 nextVideo = self.url.replace('series=%s' % series, 'series=%s' % (series + 1))
             for i in range(total):
-                allRelatedVideo.append(self.url.replace('series=%s' % series, 'series=%s' % (i + 1)))
+                allRelatedVideo.append({"title": "%s-%s" % (title, (i + 1)), 
+                                        "url": self.url.replace('series=%s' % series, 'series=%s' % (i + 1)),
+                                        "current": series == (i + 1)})
         return (previousVideo, nextVideo, allRelatedVideo)
 
     def parseVideo(self):
@@ -391,13 +393,15 @@ class ClubWebParser(WebParser):
         logging.info("parseVideo: %s", self.url)
         responseString = self.fetchWeb(self.url, ua=self.ua)
         root = ET.fromstring(responseString)
-        title = self.getElementText(root, 'name').encode('utf8')
+        title = self.getElementText(root, 'name')
         total = int(self.getElementText(root, 'total'))
         series = int(self.getElementText(root, 'series'))
+        previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideos(total, series, title)
+        if total > 1:
+            title += '-%s' % series
         videoUrl = self.getElementText(root, 'medias/media/seg/newurl').replace('&amp;', '&')
         duration = self.getElementText(root, 'medias/media/seg/duration')
-        previousVideo, nextVideo, allRelatedVideo = self.getRelatedVideos(total, series)
-        return Video(title, self.url, videoUrl, duration, self.site,
+        return Video(title.encode('utf8'), self.url, videoUrl, duration, self.site,
                      previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
 
     def parseWeb(self):
