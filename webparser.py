@@ -372,7 +372,7 @@ class ClubWebParser(WebParser):
     def getElementText(self, element, match):
         e = element.find(match)
         if e is not None:
-            return e.text()
+            return e.text
 
     def getRelatedVideos(self, total, series):
         previousVideo, nextVideo = None, None
