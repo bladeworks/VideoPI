@@ -389,7 +389,7 @@ class ClubWebParser(WebParser):
     def parseVideo(self):
         self.url = self.url.replace('playHothtml5', 'playHot')
         logging.info("parseVideo: %s", self.url)
-        responseString = self.fetchWeb(url, ua=self.ua)
+        responseString = self.fetchWeb(self.url, ua=self.ua)
         root = ET.fromstring(responseString)
         title = self.getElementText(root, 'name')
         total = int(self.getElementText(root, 'total'))
