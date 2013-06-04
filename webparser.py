@@ -379,12 +379,12 @@ class ClubWebParser(WebParser):
         allRelatedVideo = []
         if total > 1:
             if series > 1:
-                previousVideo = self.url.replace('series=%s' % series, 'series=%s' % (series - 1))
+                previousVideo = urllib2.quote(self.url.replace('series=%s' % series, 'series=%s' % (series - 1)))
             if series < total:
-                nextVideo = self.url.replace('series=%s' % series, 'series=%s' % (series + 1))
+                nextVideo = urllib2.quote(self.url.replace('series=%s' % series, 'series=%s' % (series + 1)))
             for i in range(total):
                 allRelatedVideo.append({"title": "%s-%s" % (title, (i + 1)), 
-                                        "url": self.url.replace('series=%s' % series, 'series=%s' % (i + 1)),
+                                        "url": urllib2.quote(self.url.replace('series=%s' % series, 'series=%s' % (i + 1))),
                                         "current": series == (i + 1)})
         return (previousVideo, nextVideo, allRelatedVideo)
 
