@@ -448,6 +448,7 @@ def restart():
 @error(404)
 def error404(error):
     logging.debug("404 on url: %s", request.url)
+    logging.debug("query_string: %s", request.query_string)
     if request.url == "http://192.168.1.100/jsonrpc":
         return
     p_results = urlparse(request.url)
