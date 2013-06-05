@@ -245,6 +245,9 @@ class WebParser:
     def getTZ(self):
         return time.timezone / (-60*60)
 
+    def which(self, cmd):
+        return subprocess.call('type ' + cmd, shell=True) == 0
+
     def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
         cookieFile = "/tmp/cookies.%s" % self.site
         # setup cookie
@@ -256,8 +259,12 @@ class WebParser:
                 os.makedirs(os.path.dirname(cookieFile))
 
         logging.debug("Fetch %s", url)
-        if download_program == 'wget':
-            return subprocess.check_output("wget -q -O - %s | cat" % url, shell=True)
+        if download_program == 'wget' and not via_proxy and which('wget'):
+            return subprocess.check_output("wget -U %s -q -O - %s | cat" % (ua, url), shell=True)
+        if download_program == 'axel' and not via_proxy and which('axel'):
+            subprocess.call("axel -q -o /tmp/tmppage -U %s %s" % (ua, url), shell=True)
+            with open('/tmp/tmppage') as f:
+                return f.read()
         host = urlparse(url).hostname
         headers = {}
         urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie)))
@@ -605,7 +612,7 @@ class YoukuWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url, download_program='wget')
+        responseString = self.fetchWeb(self.url, download_program='axel')
         logging.debug("Finish fetch web")
         s = self.youku_url_replace_pattern.sub(lambda m: '"url":"%s"' % m.group('url'), responseString)
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
