@@ -262,7 +262,7 @@ class WebParser:
         if download_program == 'wget' and not via_proxy and self.which('wget'):
             return subprocess.check_output("wget -U %s -q -O - %s | cat" % (ua, url), shell=True)
         if download_program == 'axel' and not via_proxy and self.which('axel'):
-            subprocess.call("axel -q -o /tmp/tmppage -U %s %s" % (ua, url), shell=True)
+            subprocess.call("rm -f /tmp/tmppage && axel -q -o /tmp/tmppage -U %s %s" % (ua, url), shell=True)
             with open('/tmp/tmppage') as f:
                 return f.read()
         host = urlparse(url).hostname
