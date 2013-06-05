@@ -612,7 +612,7 @@ class YoukuWebParser(WebParser):
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
-        responseString = self.fetchWeb(self.url, download_program='axel')
+        responseString = self.fetchWeb(self.url, download_program='wget')
         logging.debug("Finish fetch web")
         s = self.youku_url_replace_pattern.sub(lambda m: '"url":"%s"' % m.group('url'), responseString)
         replaces = [(' href="http://', ' href="/forward?site=%s&url=http://' % self.site),
