@@ -74,8 +74,8 @@ def fillQueue(urls=[]):
             playQueue.put(v)
     # fill other related videos
     if currentVideo and currentVideo.nextVideo:
-        logging.debug("Put next: %s", currentVideo.nextVideo)
-        playQueue.put("next:%s" % currentVideo.nextVideo)
+        logging.debug("Put next: %s", urllib2.unquote(currentVideo.nextVideo))
+        playQueue.put("next:%s" % urllib2.unquote(currentVideo.nextVideo))
 
 
 def startPlayer(url):
