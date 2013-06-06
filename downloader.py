@@ -128,7 +128,8 @@ class Downloader:
             return "%s B/s" % speed
 
     def getSizeInfo(self):
-        info = urllib2.urlopen(self.url).info()
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        info = urllib2.urlopen(urllib2.Request(self.url, headers=headers)).info()
         self.total_length = int(info["Content-Length"])
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
@@ -236,7 +237,7 @@ class MultiDownloader:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    downloader = MultiDownloader(['http://220.181.155.131/20/34/95/2201804638.0.flv?crypt=5b038d52aa7f2e667&b=1781&gn=820&nc=6&bf=30&p2p=1&video_type=flv&check=0&tm=1370545200&key=936102414282e6f08fc6d307b1f5681c&opck=0&lgn=letv&proxy=3702879668&cipi=3702878110&geo=CN-1-0-1&tsnp=1&mmsid=1804638&platid=8&splatid=800&playid=0&tss=no&tag=box'])
+    downloader = MultiDownloader(['http://f.youku.com/player/getFlvPath/sid/00_00/st/flv/fileid/030002070051ADA35FF9D3054A57BFDB2A7C82-7C97-1EAE-2A3A-4C4AD7420D55?K=a8f40c43f5ea22142828a9f9'])
     downloader.start()
     time.sleep(25)
     downloader.stop()
