@@ -80,6 +80,7 @@ class Downloader:
         logging.debug("Begin download part %s", downloadInfo.part_num)
         req = urllib2.Request(downloadInfo.url)
         req.headers['Range'] = 'bytes=%s-%s' % (start, end)
+        req.headers['User-Agent'] = 'Mozilla/5.0'
         retries = 10
         for i in range(retries):
             try:
