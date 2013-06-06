@@ -23,8 +23,8 @@ class Worker(Thread):
             func, args, kargs = self.tasks.get()
             try:
                 func(*args, **kargs)
-            except Exception, e:
-                print e
+            except Exception:
+                logging.exception("Got exception")
             self.tasks.task_done()
 
 

@@ -122,10 +122,10 @@ done\n""" % (download_file, download_cache_size)
         self._send_cmd(self._TOGGLE_SUB_CMD)
 
     def stop(self):
-        if self.currentVideo.downloader:
-            self.currentVideo.downloader.stop()
         self._send_cmd(self._QUIT_CMD)
         os.killpg(self._process.pid, signal.SIGTERM)
+        if self.currentVideo.downloader:
+            self.currentVideo.downloader.stop()
 
     def set_speed(self):
         raise NotImplementedError
