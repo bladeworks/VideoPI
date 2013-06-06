@@ -211,7 +211,7 @@ class MultiDownloader:
         if self.currentDownloader:
             logging.info("Stopping currentDownloader")
             self.currentDownloader.stop()
-        self.releaseFiles(['/tmp/download_part', '/tmp/ffmpeg_part'])
+        self.releaseFiles(['/tmp/download_part'])
 
     def releaseFiles(self, files):
         def handler(signum, frame):
