@@ -130,7 +130,9 @@ class Downloader:
 
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
-        info = urllib2.urlopen(urllib2.Request(self.url, headers=headers)).info()
+        req = urllib2.Request(self.url, headers=headers)
+        info = urllib2.urlopen(req).info()
+        logging.debug("Req.headers = %s", req.headers)
         self.total_length = int(info["Content-Length"])
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
