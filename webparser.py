@@ -322,6 +322,7 @@ class WebParser:
                 self.format = default_format
             else:
                 self.format = self.availableFormat[-1]
+        logging.info("The video format is %s", self.format)
 
     def getM3UFromFlvcd(self):
         # 默认清晰度最高的
@@ -332,6 +333,7 @@ class WebParser:
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s&flag=one&format=%s" % \
             (self.url, format2keyword[self.format])
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
+        logging.debug('responseString = %s', responseString)
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
         if not m3u:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
