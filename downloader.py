@@ -58,6 +58,7 @@ class Downloader:
 
     def __init__(self, url, process_num=10, chunk_size=1000000, step_size=10):
         self.url = url
+        logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
         self.chunk_size = chunk_size
         self.step_size = step_size
@@ -128,7 +129,7 @@ class Downloader:
             return "%s B/s" % speed
 
     def getSizeInfo(self):
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_3) AppleWebKit/534.55.3 (KHTML, like Gecko) Version/5.1.3 Safari/534.53.10'}
+        headers = {'User-Agent': 'Mozilla/5.0'}
         info = urllib2.urlopen(urllib2.Request(self.url, headers=headers)).info()
         self.total_length = int(info["Content-Length"])
         self.total_part = int(self.total_length / self.chunk_size)
