@@ -225,6 +225,8 @@ class MultiDownloader:
                     f1.read()
             except:
                 pass
+            finally:
+                logging.info("File %s released" % f)
         signal.alarm(0)
 
     def getCatCmds(self):
