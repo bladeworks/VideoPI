@@ -186,6 +186,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
                 start = 0
             download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(start, "-", ffmpeg_part)))
         ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
+        currentVideo.downloader = multiDownloader
     else:
         if len(sections[start_idx:]) == 1:
             dp = "wget"
