@@ -5,6 +5,7 @@ import urllib2
 import socket
 import logging
 import time
+import signal
 from threading import Thread
 from Queue import Queue
 
@@ -210,6 +211,21 @@ class MultiDownloader:
         if self.currentDownloader:
             logging.info("Stopping currentDownloader")
             self.currentDownloader.stop()
+        self.releaseFiles(['/tmp/download_part', '/tmp/ffmpeg_part'])
+
+    def releaseFiles(self, files):
+        def handler(signum, frame):
+            pass
+
+        signal.signal(signal.SIGALRM, handler)
+        signal.alarm(1)
+        for f in files:
+            try:
+                with open(f) as f1:
+                    f1.read()
+            except:
+                pass
+        signal.alarm(0)
 
     def getCatCmds(self):
         logging.info("catCmds: %s" % self.catCmds)
@@ -222,18 +238,3 @@ if __name__ == '__main__':
     time.sleep(25)
     downloader.stop()
     downloader.getCatCmds()
-    import sys
-    import traceback
-    print >> sys.stderr, "\n*** STACKTRACE - START ***\n"
-    code = []
-    for threadId, stack in sys._current_frames().items():
-        code.append("\n# ThreadID: %s" % threadId)
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('File: "%s", line %d, in %s' % (filename,
-                                                        lineno, name))
-            if line:
-                code.append("  %s" % (line.strip()))
-
-    for line in code:
-        print >> sys.stderr, line
-    print >> sys.stderr, "\n*** STACKTRACE - END ***\n"
