@@ -89,10 +89,10 @@ class Downloader:
                 downloadInfo.result_queue.put({downloadInfo.part_num: resp.read()})
                 break
             except urllib2.URLError as err:
-                if not isinstance(err.reason, socket.timeout):
-                    raise err
-                else:
-                    logging.info("Retry %s", i)
+                # if not isinstance(err.reason, socket.timeout):
+                #     raise err
+                # else:
+                logging.info("Retry %s", i)
         else:
             raise Exception("Failed to download part %s" % downloadInfo.part_num)
         logging.debug("Completed download part %s", downloadInfo.part_num)
@@ -103,7 +103,7 @@ class Downloader:
             r = self.result_queue.get()
             result.update(r)
             if len(result) == self.current_step_size:
-                logging.info("Finished step with size %s", self.step_size)
+                logging.info("Finished step with size %s", self.current_step_size)
                 filename = "/tmp/download_part"
                 end_time = time.time()
                 filesize = 0
