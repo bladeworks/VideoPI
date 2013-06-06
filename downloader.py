@@ -56,7 +56,7 @@ class DownloadInfo:
 
 class Downloader:
 
-    def __init__(self, url, process_num=10, chunk_size=1000000, step_size=10):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
