@@ -82,13 +82,13 @@ class Downloader:
         req = urllib2.Request(downloadInfo.url)
         req.headers['Range'] = 'bytes=%s-%s' % (start, end)
         req.headers['User-Agent'] = 'Mozilla/5.0'
-        retries = 10
+        retries = 20
         for i in range(retries):
             try:
                 resp = urllib2.urlopen(req, None, 30)
                 downloadInfo.result_queue.put({downloadInfo.part_num: resp.read()})
                 break
-            except urllib2.URLError as err:
+            except Exception:
                 # if not isinstance(err.reason, socket.timeout):
                 #     raise err
                 # else:
@@ -183,7 +183,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=10, chunk_size=1000000, step_size=10):
+    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
