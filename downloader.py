@@ -84,6 +84,7 @@ class Downloader:
         for i in range(retries):
             try:
                 resp = urllib2.urlopen(req, None, 30)
+                downloadInfo.result_queue.put({downloadInfo.part_num: resp.read()})
                 break
             except urllib2.URLError as err:
                 if not isinstance(err.reason, socket.timeout):
@@ -92,7 +93,6 @@ class Downloader:
                     logging.info("Retry %s", i)
         else:
             raise Exception("Failed to download part %s" % downloadInfo.part_num)
-        downloadInfo.result_queue.put({downloadInfo.part_num: resp.read()})
         logging.debug("Completed download part %s", downloadInfo.part_num)
 
     def handleResult(self):
