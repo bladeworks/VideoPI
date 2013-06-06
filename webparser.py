@@ -267,12 +267,9 @@ class WebParser:
                     return f.read()
             except:
                 logging.exception("Got exception")
-        else:
-            # if no axel, let's use wget
-            download_program = 'wget'
         if download_program == 'wget' and not via_proxy and self.which('wget'):
             try:
-                return subprocess.check_output("wget -U %s -q -O - %s | cat" % (ua, url), shell=True)
+                return subprocess.check_output("wget -U %s -q -O - \"%s\" | cat" % (ua, url), shell=True)
             except:
                 logging.exception("Got exception")
         host = urlparse(url).hostname
@@ -298,7 +295,6 @@ class WebParser:
         except urllib2.HTTPError:
             req = urllib2.Request(url, None, headers)
         resp = urllib2.urlopen(req).read()
-        logging.debug('resp = %s', resp)
         cookie.save(cookieFile, ignore_discard=True, ignore_expires=True)
         return resp
 
@@ -334,7 +330,6 @@ class WebParser:
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s&flag=one&format=%s" % \
             (self.url, format2keyword[self.format])
         responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
-        logging.debug('responseString = %s', responseString)
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
         if not m3u:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
