@@ -298,6 +298,7 @@ class WebParser:
         except urllib2.HTTPError:
             req = urllib2.Request(url, None, headers)
         resp = urllib2.urlopen(req).read()
+        logging.debug('resp = %s', resp)
         cookie.save(cookieFile, ignore_discard=True, ignore_expires=True)
         return resp
 
