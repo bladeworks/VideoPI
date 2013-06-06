@@ -163,9 +163,10 @@ class MultiDownloader:
         self.download_thread.start()
 
     def download(self):
-        for downloader in self.downloaders:
+        for idx, downloader in enumerate(self.downloaders):
             if self.stopped:
                 break
+            logging.info("Start downloading %s - %s" % (idx + 1, downloader.url))
             self.currentDownloader = downloader
             self.currentDownloader.start()
             while not self.currentDownloader.stopped:
