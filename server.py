@@ -15,6 +15,7 @@ from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
 from show_image import *
+from downloader import *
 from config import *
 try:
     from userPrefs import *
@@ -173,28 +174,42 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     download_lines = []
     p_list = []
     dp = download_program
-    if len(sections[start_idx:]) == 1:
-        dp = "wget"
-    logging.info("dp = %s", dp)
-    for idx, v in enumerate(sections[start_idx:]):
-        pname = "/tmp/p%s" % idx
-        fname = "/tmp/f%s" % dp
-        newFifo(pname)
-        p_list.append(pname)
-        if idx == 0:
-            if dp == 'axel':
-                download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(delta, fname, pname)))
+    ffmpeg_input = ""
+    if dp == "private":
+        multiDownloader = MultiDownloader(sections[start_idx:])
+        catCmds = multiDownloader.getCatCmds()
+        ffmpeg_part = "/tmp/ffmpeg_part"
+        for idx, catCmd in enumerate(catCmds):
+            if idx == 0:
+                start = delta
+            else:
+                start = 0
+            download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(start, "-", ffmpeg_part)))
+        ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmd))])
+    else:
+        if len(sections[start_idx:]) == 1:
+            dp = "wget"
+        logging.info("dp = %s", dp)
+        for idx, v in enumerate(sections[start_idx:]):
+            pname = "/tmp/p%s" % idx
+            fname = "/tmp/f%s" % dp
+            newFifo(pname)
+            p_list.append(pname)
+            if idx == 0:
+                if dp == 'axel':
+                    download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(delta, fname, pname)))
+                    continue
+                download_lines.append("{\n%s\n}" % getFfmpegCmd(delta, v, pname))
                 continue
-            download_lines.append("{\n%s\n}" % getFfmpegCmd(delta, v, pname))
-            continue
-        if dp == 'wget':
-            download_lines.append("{\n%s | %s\n}" % (getWgetCmd(v), getFfmpegCmd(0, "-", pname)))
-        elif dp == 'axel':
-            download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(0, fname, pname)))
-        else:
-            download_lines.append("{\n%s\n}" % getFfmpegCmd(0, v, pname))
+            if dp == 'wget':
+                download_lines.append("{\n%s | %s\n}" % (getWgetCmd(v), getFfmpegCmd(0, "-", pname)))
+            elif dp == 'axel':
+                download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(0, fname, pname)))
+            else:
+                download_lines.append("{\n%s\n}" % getFfmpegCmd(0, v, pname))
+        ffmpeg_input = " ".join(p_list)
     download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                     % (" ".join(p_list), currentVideo.playUrl)
+                     % (ffmpeg_input, currentVideo.playUrl)
     download_args += " && ".join(download_lines)
     currentVideo.download_args = download_args
     fillQueue(urls=[currentVideo.playUrl])
@@ -501,6 +516,8 @@ def getScreenSize():
 
 newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
+newFifo('/tmp/download_part')
+newFifo('/tmp/ffmpeg_part')
 getScreenSize()
 try:
     run(host='0.0.0.0', port=80, quiet=True)

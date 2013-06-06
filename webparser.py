@@ -259,12 +259,21 @@ class WebParser:
                 os.makedirs(os.path.dirname(cookieFile))
 
         logging.debug("Fetch %s", url)
-        if download_program == 'wget' and not via_proxy and self.which('wget'):
-            return subprocess.check_output("wget -U %s -q -O - %s | cat" % (ua, url), shell=True)
         if download_program == 'axel' and not via_proxy and self.which('axel'):
-            subprocess.call("rm -f /tmp/tmppage && axel -q -o /tmp/tmppage -U %s %s" % (ua, url), shell=True)
-            with open('/tmp/tmppage') as f:
-                return f.read()
+            try:
+                subprocess.call("rm -f /tmp/tmppage && axel -q -o /tmp/tmppage -U %s %s" % (ua, url), shell=True)
+                with open('/tmp/tmppage') as f:
+                    return f.read()
+            except:
+                logging.exception("Got exception")
+        else:
+            # if no axel, let's use wget
+            download_program = 'wget'
+        if download_program == 'wget' and not via_proxy and self.which('wget'):
+            try:
+                return subprocess.check_output("wget -U %s -q -O - %s | cat" % (ua, url), shell=True)
+            except:
+                logging.exception("Got exception")
         host = urlparse(url).hostname
         headers = {}
         urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie)))

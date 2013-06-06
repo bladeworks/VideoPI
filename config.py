@@ -31,7 +31,7 @@ download_file = "/download/all.ts"
 # download_cache_size, only used if download_to_local is True
 download_cache_size = 5242880
 
-# download program (None or "wget")
+# download program (None or "wget" or "axel" or "private")
 download_program = "wget"
 
 # download thread for axel
