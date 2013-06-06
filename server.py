@@ -179,14 +179,20 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         multiDownloader = MultiDownloader(sections[start_idx:])
         catCmds = multiDownloader.getCatCmds()
         ffmpeg_part = "/tmp/ffmpeg_part"
-        for idx, catCmd in enumerate(catCmds):
-            if idx == 0:
-                start = delta
-            else:
-                start = 0
-            download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(start, "-", ffmpeg_part)))
-        ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
         currentVideo.downloader = multiDownloader
+        if len(catCmds) == 1:
+            download_args += "%s > %s" % (catCmds[0], currentVideo.playUrl)
+        else:
+            for idx, catCmd in enumerate(catCmds):
+                if idx == 0:
+                    start = delta
+                else:
+                    start = 0
+                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(start, "-", ffmpeg_part)))
+            ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
+            download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                             % (ffmpeg_input, currentVideo.playUrl)
+            download_args += " && ".join(download_lines)
     else:
         if len(sections[start_idx:]) == 1:
             dp = "wget"
@@ -209,9 +215,9 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             else:
                 download_lines.append("{\n%s\n}" % getFfmpegCmd(0, v, pname))
         ffmpeg_input = " ".join(p_list)
-    download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                     % (ffmpeg_input, currentVideo.playUrl)
-    download_args += " && ".join(download_lines)
+        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                         % (ffmpeg_input, currentVideo.playUrl)
+        download_args += " && ".join(download_lines)
     currentVideo.download_args = download_args
     fillQueue(urls=[currentVideo.playUrl])
     new_play_thread()
