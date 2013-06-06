@@ -215,7 +215,7 @@ class MultiDownloader:
 
     def releaseFiles(self, files):
         def handler(signum, frame):
-            pass
+            raise IOError("Time out")
 
         signal.signal(signal.SIGALRM, handler)
         signal.alarm(1)
