@@ -169,7 +169,7 @@ class MultiDownloader:
             self.currentDownloader = downloader
             self.currentDownloader.start()
             while not self.currentDownloader.stopped:
-                sleep(0.1)
+                time.sleep(0.1)
 
     def stop(self):
         self.stopped = True
