@@ -60,6 +60,7 @@ class Video:
         self.sections = sections
         self.start_pos = start_pos
         self.download_args = download_args
+        self.downloader = None
         self.width, self.height = (0, 0)
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)

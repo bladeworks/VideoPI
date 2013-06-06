@@ -27,6 +27,8 @@ class OMXPlayer(object):
 
     def __init__(self, currentVideo, screenWidth=0, screenHeight=0):
         self.currentVideo = currentVideo
+        if self.currentVideo.downloader:
+            self.currentVideo.downloader.start()
         args = self.getArgs(screenWidth, screenHeight)
         if additonal_omxplayer_args:
             args += " %s" % additonal_omxplayer_args
@@ -120,6 +122,8 @@ done\n""" % (download_file, download_cache_size)
         self._send_cmd(self._TOGGLE_SUB_CMD)
 
     def stop(self):
+        if self.currentVideo.downloader:
+            self.currentVideo.downloader.stop()
         self._send_cmd(self._QUIT_CMD)
         os.killpg(self._process.pid, signal.SIGTERM)
 
