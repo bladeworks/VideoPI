@@ -57,13 +57,13 @@ class Downloader:
         self.step_done = False
         self.current_step_size = 0
         self.stopped = False
+        self.connectionPool = {}
+        self.host = None
+        self.path = None
         self.getSizeInfo()
         self.result_thread = Thread(target=self.handleResult)
         self.download_thread = Thread(target=self.download)
         self.start_time = 0
-        self.connectionPool = {}
-        self.host = None
-        self.path = None
 
     def getConnection(self, threadName):
         if threadName in self.connectionPool:
