@@ -60,10 +60,13 @@ class Downloader:
         self.connectionPool = {}
         self.host = None
         self.path = None
+        self.total_part = 0
         retries = 20
         for i in range(retries):
             logging.info("Try %s time to getSizeInfo", i)
             self.getSizeInfo()
+            if self.total_part:
+                break
         else:
             raise Exception("Can't get size for %s" % self.url)
         self.result_thread = Thread(target=self.handleResult)
