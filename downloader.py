@@ -73,13 +73,16 @@ class Downloader:
         for i in range(retries):
             try:
                 resp = requests.get(self.url, headers=headers, allow_redirects=True)
-                self.result_queue.put({part_num: resp.content})
-                break
+                if resp.status_code == 200:
+                    self.result_queue.put({part_num: resp.content})
+                    break
+                else:
+                    logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
             except Exception:
                 # if not isinstance(err.reason, socket.timeout):
                 #     raise err
                 # else:
-                logging.info("Retry %s", i)
+                logging.info("Retry %s", i + 1)
         else:
             raise Exception("Failed to download part %s" % part_num)
         logging.debug("Completed download part %s", part_num)
@@ -117,7 +120,13 @@ class Downloader:
 
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
-        info = requests.head(self.url, headers=headers, allow_redirects=True).headers
+        for i in range(10):
+            resp = requests.head(self.url, headers=headers, allow_redirects=True)
+            if resp.status_code == 200:
+                info = resp.headers
+                break
+            else:
+                logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
         logging.debug('info = %s', info)
         self.total_length = int(info["content-length"])
         self.total_part = int(self.total_length / self.chunk_size)
