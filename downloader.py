@@ -97,7 +97,6 @@ class Downloader:
             try:
                 conn.request("GET", self.path, None, headers)
                 resp = conn.getresponse()
-                logging.info("resp status = %s", resp.status)
                 if resp.status == 200:
                     self.result_queue.put({part_num: resp.read()})
                     break
