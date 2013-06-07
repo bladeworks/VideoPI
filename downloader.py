@@ -118,6 +118,7 @@ class Downloader:
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
         info = requests.head(self.url, headers=headers).headers
+        logging.debug('info = %s', info)
         self.total_length = int(info["content-length"])
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
