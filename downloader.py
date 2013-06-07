@@ -60,11 +60,7 @@ class Downloader:
         self.connectionPool = {}
         self.host = None
         self.path = None
-        retries = 20
-        for i in range(retries):
-            self.getSizeInfo()
-        else:
-            raise Exception("Can't get size for %s" % self.url)
+        self.getSizeInfo()
         self.result_thread = Thread(target=self.handleResult)
         self.download_thread = Thread(target=self.download)
         self.start_time = 0
@@ -144,7 +140,6 @@ class Downloader:
         logging.info("status = %s", resp.status)
         if 300 < resp.status < 400:
             self.url = resp.getheader("location")
-            logging.info("Redirect to %s" % self.url)
             self.connectionPool.clear()
             self.getSizeInfo()
         elif resp.status == 200:
