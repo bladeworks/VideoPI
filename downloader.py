@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import urllib2
-import socket
+import threading
+from urlparse import urlparse
 import logging
 import time
 import signal
+import httplib
 from threading import Thread
 from Queue import Queue
 
@@ -44,16 +45,6 @@ class ThreadPool:
         self.tasks.join()
 
 
-class DownloadInfo:
-
-    def __init__(self, part_num, url, total_length, chunk_size, result_queue):
-        self.part_num = part_num
-        self.url = url
-        self.total_length = total_length
-        self.chunk_size = chunk_size
-        self.result_queue = result_queue
-
-
 class Downloader:
 
     def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10):
@@ -70,32 +61,43 @@ class Downloader:
         self.result_thread = Thread(target=self.handleResult)
         self.download_thread = Thread(target=self.download)
         self.start_time = 0
+        self.connectionPool = {}
+        self.host = None
+        self.path = None
 
-    def download_part(self, downloadInfo):
+    def getConnection(self, threadName):
+        if threadName in self.connectionPool:
+            return self.connectionPool[threadName]
+        else:
+            p = urlparse(self.url)
+            self.host = p.netloc
+            self.path = self.url.partition(self.host)[2]
+            return httplib.HTTPConnection(self.host)
+
+    def download_part(self, part_num):
         # Content-Range: bytes 0-499/1234
         # Content-Range: bytes 500-999/1234
-        start = downloadInfo.part_num * downloadInfo.chunk_size
-        end = (downloadInfo.part_num + 1) * downloadInfo.chunk_size - 1
-        if end > downloadInfo.total_length:
-            end = downloadInfo.total_length
-        logging.debug("Begin download part %s", downloadInfo.part_num)
-        req = urllib2.Request(downloadInfo.url)
-        req.headers['Range'] = 'bytes=%s-%s' % (start, end)
-        req.headers['User-Agent'] = 'Mozilla/5.0'
+        start = part_num * self.chunk_size
+        threadName = threading.currentThread().getName()
+        conn = self.getConnection(threadName)
+        end = (part_num + 1) * self.chunk_size - 1
+        if end > self.total_length:
+            end = self.total_length
+        logging.debug("Begin download part %s", part_num)
+        headers = {'Range': 'bytes=%s-%s' % (start, end), 'User-Agent': 'Mozilla/5.0'}
         retries = 20
         for i in range(retries):
             try:
-                resp = urllib2.urlopen(req, None, 30)
-                downloadInfo.result_queue.put({downloadInfo.part_num: resp.read()})
-                break
+                conn.request("GET", self.path, None, headers)
+                resp = conn.getresponse()
+                if resp.status == 200:
+                    self.result_queue.put({part_num: resp.read()})
+                    break
             except Exception:
-                # if not isinstance(err.reason, socket.timeout):
-                #     raise err
-                # else:
                 logging.info("Retry %s", i)
         else:
-            raise Exception("Failed to download part %s" % downloadInfo.part_num)
-        logging.debug("Completed download part %s", downloadInfo.part_num)
+            raise Exception("Failed to download part %s" % part_num)
+        logging.debug("Completed download part %s", part_num)
 
     def handleResult(self):
         result = {}
@@ -129,18 +131,22 @@ class Downloader:
             return "%s B/s" % speed
 
     def getSizeInfo(self):
-        req = urllib2.Request(self.url)
-        req.headers['User-Agent'] = 'Mozilla/5.0'
-        logging.debug("Req.headers = %s", req.headers)
-        info = urllib2.urlopen(req).info()
-        self.total_length = int(info["Content-Length"])
-        self.total_part = int(self.total_length / self.chunk_size)
-        if self.total_length % self.chunk_size > 0:
-            self.total_part += 1
-        self.file_num = int(self.total_part / self.step_size)
-        if self.total_part % self.step_size > 0:
-            self.file_num += 1
-        logging.info("total_length = %s", self.total_length)
+        threadName = threading.currentThread().getName()
+        conn = self.getConnection(threadName)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        conn.request('GET', self.path, None, headers)
+        resp = conn.getresponse()
+        if resp.status == 200:
+            self.total_length = int(resp.getheader("Content-Length"))
+            self.total_part = int(self.total_length / self.chunk_size)
+            if self.total_length % self.chunk_size > 0:
+                self.total_part += 1
+            self.file_num = int(self.total_part / self.step_size)
+            if self.total_part % self.step_size > 0:
+                self.file_num += 1
+            logging.info("total_length = %s", self.total_length)
+        else:
+            raise Exception("Can't get size for url %s" % self.url)
 
     def start(self):
         self.result_thread.start()
@@ -151,7 +157,6 @@ class Downloader:
         for start in range(0, self.total_part, self.step_size):
             if self.stopped:
                 break
-            params = []
             self.step_done = False
             self.start_time = time.time()
             end = start + self.step_size
@@ -159,9 +164,7 @@ class Downloader:
                 end = self.total_part
             self.current_step_size = end - start
             for i in range(start, end):
-                params.append(DownloadInfo(i, self.url, self.total_length, self.chunk_size, self.result_queue))
-            for param in params:
-                self.pool.add_task(self.download_part, param)
+                self.pool.add_task(self.download_part, i)
             while True:
                 if self.step_done or self.stopped:
                     break
@@ -175,6 +178,12 @@ class Downloader:
 
     def stop(self):
         self.stopped = True
+        # close all the connections
+        for conn in self.connectionPool.itervalues():
+            try:
+                conn.close()
+            except Exception:
+                logging.exception("Ignore exception")
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
