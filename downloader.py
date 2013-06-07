@@ -135,7 +135,9 @@ class Downloader:
         conn = self.getConnection(threadName)
         headers = {'User-Agent': 'Mozilla/5.0'}
         conn.request('GET', self.path, None, headers)
+        logging.info("path = %s", self.path)
         resp = conn.getresponse()
+        logging.info("status = %s", resp.status)
         if resp.status == 200:
             self.total_length = int(resp.getheader("Content-Length"))
             self.total_part = int(self.total_length / self.chunk_size)
