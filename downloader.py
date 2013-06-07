@@ -62,7 +62,6 @@ class Downloader:
         self.path = None
         retries = 20
         for i in range(retries):
-            logging.info("Try %s time to getSizeInfo", i)
             self.getSizeInfo()
         else:
             raise Exception("Can't get size for %s" % self.url)
