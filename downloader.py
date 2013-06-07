@@ -73,7 +73,7 @@ class Downloader:
         for i in range(retries):
             try:
                 resp = requests.get(self.url, headers=headers, allow_redirects=True)
-                if resp.status_code == 200:
+                if 200 <= resp.status_code < 300:
                     self.result_queue.put({part_num: resp.content})
                     break
                 else:
@@ -122,7 +122,7 @@ class Downloader:
         headers = {'User-Agent': 'Mozilla/5.0'}
         for i in range(10):
             resp = requests.head(self.url, headers=headers, allow_redirects=True)
-            if resp.status_code == 200:
+            if 200 <= resp.status_code < 300:
                 info = resp.headers
                 break
             else:
