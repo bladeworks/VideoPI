@@ -129,8 +129,8 @@ class Downloader:
             return "%s B/s" % speed
 
     def getSizeInfo(self):
-        headers = {'User-Agent': 'Mozilla/5.0', "Accept": "*/*", "Connection": "Keep-Alive"}
-        req = urllib2.Request(self.url, headers=headers)
+        req = urllib2.Request(self.url)
+        req.headers['User-Agent'] = 'Mozilla/5.0'
         logging.debug("Req.headers = %s", req.headers)
         info = urllib2.urlopen(req).info()
         self.total_length = int(info["Content-Length"])
@@ -240,7 +240,7 @@ class MultiDownloader:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    downloader = MultiDownloader(['http://192.168.1.100:8000'])
+    downloader = MultiDownloader(['http://f.youku.com/player/getFlvPath/sid/00_00/st/flv/fileid/0300011400511B74719AE2032DBBC7299B4E30-E304-34BD-DD12-0E375AE4E342?K=3f40f9097a3ef7f3261d0bc4'])
     downloader.start()
     time.sleep(25)
     downloader.stop()
