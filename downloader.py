@@ -72,7 +72,7 @@ class Downloader:
         retries = 20
         for i in range(retries):
             try:
-                resp = requests.get(self.url, headers=headers)
+                resp = requests.get(self.url, headers=headers, allow_redirects=True)
                 self.result_queue.put({part_num: resp.content})
                 break
             except Exception:
@@ -117,7 +117,7 @@ class Downloader:
 
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
-        info = requests.head(self.url, headers=headers).headers
+        info = requests.head(self.url, headers=headers, allow_redirects=True).headers
         logging.debug('info = %s', info)
         self.total_length = int(info["content-length"])
         self.total_part = int(self.total_length / self.chunk_size)
