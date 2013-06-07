@@ -138,11 +138,7 @@ class Downloader:
         logging.info("path = %s", self.path)
         resp = conn.getresponse()
         logging.info("status = %s", resp.status)
-        if 300 < resp.status < 400:
-            self.url = resp.getheader("location")
-            self.connectionPool.clear()
-            self.getSizeInfo()
-        elif resp.status == 200:
+        if resp.status == 200:
             self.total_length = int(resp.getheader("Content-Length"))
             self.total_part = int(self.total_length / self.chunk_size)
             if self.total_length % self.chunk_size > 0:
