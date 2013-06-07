@@ -63,7 +63,6 @@ class Downloader:
         self.total_part = 0
         retries = 20
         for i in range(retries):
-            logging.info("Try %s time to getSizeInfo", i)
             self.getSizeInfo()
             if self.total_part:
                 break
@@ -102,6 +101,7 @@ class Downloader:
                     self.result_queue.put({part_num: resp.read()})
                     break
             except Exception:
+                logging.exception("Got exception")
                 logging.info("Retry %s", i)
         else:
             raise Exception("Failed to download part %s" % part_num)
