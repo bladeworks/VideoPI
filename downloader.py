@@ -120,6 +120,8 @@ class Downloader:
                 logging.debug("End write file")
             else:
                 logging.debug("Write stopped")
+        logging.info("Finished all write.")
+        self.stopped = True
 
     def computeSpeed(self, filesize, duration):
         speed = filesize / duration
@@ -175,7 +177,6 @@ class Downloader:
         # logging.debug("Finished part %s-%s", p, p + self.step_size)
         # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
         self.pool.wait_completion()
-        self.stopped = True
         logging.info("Finished download")
 
     def stop(self):
@@ -183,7 +184,7 @@ class Downloader:
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
-        return "cat %s" % " ".join(['/tmp/download_part' for _ in range(self.file_num)]) 
+        return "cat %s" % " ".join(['/tmp/download_part' for _ in range(self.file_num)])
 
 
 class MultiDownloader:
