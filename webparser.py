@@ -290,7 +290,7 @@ class WebParser:
         except Exception:
             resp = self.requestGet(url, headers, via_proxy)
         logging.debug("The encoding is: %s", resp.encoding)
-        return resp.text
+        return resp.content
 
     def addJS(self, responseString):
         logging.debug("additionalJS = %s" % self.additionalJS)
