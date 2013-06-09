@@ -104,7 +104,13 @@ class Downloader:
                 assert filesize > (self.current_step_size - 1) * self.chunk_size
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
                 if not self.stopped:
-                    self.write_queue.put(result.copy())
+                    # self.write_queue.put(result.copy())
+                    logging.debug("Begin write file")
+                    filename = "/tmp/download_part"
+                    with open(filename, 'a+b') as f:
+                        for v in sorted(result):
+                            f.write(result[v])
+                    logging.debug("End write file")
                 result.clear()
                 self.step_done = True
 
@@ -156,7 +162,7 @@ class Downloader:
     def start(self):
         self.result_thread.start()
         self.download_thread.start()
-        self.write_thread.start()
+        # self.write_thread.start()
 
     def download(self):
         self.pool = ThreadPool(self.process_num)
