@@ -100,6 +100,7 @@ class Downloader:
                 filesize = 0
                 for v in result.itervalues():
                     filesize += len(v)
+                assert filesize > (self.current_step_size - 1) * self.chunk_size
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
                 if not self.stopped:
                     self.write_queue.put(result.copy())
