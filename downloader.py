@@ -59,6 +59,8 @@ class Downloader:
         self.result_thread = Thread(target=self.handleResult)
         self.download_thread = Thread(target=self.download)
         self.start_time = 0
+        self.write_queue = Queue(1)
+        self.write_thread = Thread(target=self.writeFile)
 
     def download_part(self, part_num):
         # Content-Range: bytes 0-499/1234
@@ -94,20 +96,28 @@ class Downloader:
             result.update(r)
             if len(result) == self.current_step_size:
                 logging.info("Finished step with size %s", self.current_step_size)
-                filename = "/tmp/download_part"
                 end_time = time.time()
                 filesize = 0
                 for v in result.itervalues():
                     filesize += len(v)
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
-                logging.debug("Begin write file")
                 if not self.stopped:
-                    with open(filename, 'a+b') as f:
-                        for v in sorted(result):
-                            f.write(result[v])
-                    logging.debug("End write file")
+                    self.write_queue.put(result.copy())
                 result.clear()
                 self.step_done = True
+
+    def writeFile(self):
+        while True:
+            result = self.write_queue.get()
+            logging.debug("Begin write file")
+            filename = "/tmp/download_part"
+            if not self.stopped:
+                with open(filename, 'a+b') as f:
+                    for v in sorted(result):
+                        f.write(result[v])
+                logging.debug("End write file")
+            else:
+                logging.debug("Write stopped")
 
     def computeSpeed(self, filesize, duration):
         speed = filesize / duration
@@ -140,6 +150,7 @@ class Downloader:
     def start(self):
         self.result_thread.start()
         self.download_thread.start()
+        self.write_thread.start()
 
     def download(self):
         self.pool = ThreadPool(self.process_num)
