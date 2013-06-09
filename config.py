@@ -8,7 +8,7 @@ zoom = 1.0
 default_format = 4
 
 # 播放历史记录时往前进多少秒以便回忆
-advanceTime = 30
+advanceTime = 5
 
 # 日志存放位置
 logStorage = "/tmp/videopi.log"

@@ -157,8 +157,12 @@ def wrapRetry(cmd, max_retry=20):
 
 
 def getFfmpegCmd(ss, inputFile, outputFile):
-    return 'nice -n 30 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
-           % (ss, inputFile, outputFile, outputFile)
+    if ss > 0:
+        return 'nice -n 30 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+               % (ss, inputFile, outputFile, outputFile)
+    else:
+        return 'nice -n 30 ffmpeg -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+               % (inputFile, outputFile, outputFile)
 
 
 def merge_play(sections, where=0, start_idx=0, delta=0):
@@ -184,14 +188,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             download_args += "%s > %s" % (catCmds[0], currentVideo.playUrl)
         else:
             for idx, catCmd in enumerate(catCmds):
-                if idx == 0:
-                    start = delta
-                else:
-                    start = 0
-                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(start, "-", ffmpeg_part)))
+                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", ffmpeg_part)))
             ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
-            download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                             % (ffmpeg_input, currentVideo.playUrl)
+            download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                             % (ffmpeg_input, start, currentVideo.playUrl)
             download_args += " && ".join(download_lines)
     else:
         if len(sections[start_idx:]) == 1:
