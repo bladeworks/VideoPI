@@ -148,7 +148,7 @@ class Downloader:
         if self.total_part % self.step_size > 0:
             self.file_num += 1
         if resp.history:
-            newUrl = history[-1].headers['location']
+            newUrl = resp.history[-1].headers['location']
             self.url = newUrl
             logging.warn("Use the new url %s", newUrl)
         logging.info("total_length = %s", self.total_length)
