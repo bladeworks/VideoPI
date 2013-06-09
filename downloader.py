@@ -86,6 +86,7 @@ class Downloader:
                 # else:
                 logging.info("Retry %s", i + 1)
         else:
+            self.stopped = True
             raise Exception("Failed to download part %s" % part_num)
         logging.debug("Completed download part %s", part_num)
 
