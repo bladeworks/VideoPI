@@ -7,8 +7,7 @@ import json
 import logging
 import subprocess
 import time
-import cookielib
-import os
+import requests
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -27,6 +26,8 @@ format2keyword = {
     3: "super",
     4: "orig"
 }
+
+proxies = {"http": "http://h0.edu.bj.ie.sogou.com"}
 
 
 class Video:
@@ -249,16 +250,14 @@ class WebParser:
     def which(self, cmd):
         return subprocess.call('type ' + cmd, shell=True) == 0
 
-    def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
-        cookieFile = "/tmp/cookies.%s" % self.site
-        # setup cookie
-        cookie = cookielib.MozillaCookieJar(cookieFile)
-        if os.path.isfile(cookieFile):
-            cookie.load(ignore_discard=True, ignore_expires=True)
+    def requestGet(self, url, headers, via_proxy):
+        if via_proxy:
+            resp = requests.get(url, headers=headers, proxies=proxies)
         else:
-            if not os.path.isdir(os.path.dirname(cookieFile)):
-                os.makedirs(os.path.dirname(cookieFile))
+            resp = requests.get(url, headers=headers)
+        return resp
 
+    def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
         logging.debug("Fetch %s", url)
         if download_program == 'axel' and not via_proxy and self.which('axel'):
             try:
@@ -273,14 +272,11 @@ class WebParser:
             except:
                 logging.exception("Got exception")
         host = urlparse(url).hostname
-        headers = {}
-        urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie)))
-        if self.getTZ != 8:
+        headers = {'User-Agent': ua}
+        if self.getTZ() != 8:
             headers = {'User-Agent': ua,
                        'X-Forwarded-For': '220.181.111.158'}
-            proxy = urllib2.ProxyHandler({})
             if via_proxy:
-                proxy = urllib2.ProxyHandler({'http': 'h0.edu.bj.ie.sogou.com'})
                 t = hex(int(time.time()))[2:].rstrip('L').zfill(8)
                 headers = {'User-Agent': ua,
                            'Host': host,
@@ -289,14 +285,11 @@ class WebParser:
                            'X-Sogou-Auth': '81795E50665FE4212A3B4D3391950B74/30/853edc6d49ba4e27',
                            'X-Sogou-Tag': self.calc_sogou_hash(t, host),
                            'X-Sogou-Timestamp': t}
-            urllib2.install_opener(urllib2.build_opener(proxy, urllib2.HTTPCookieProcessor(cookie)))
         try:
-            req = urllib2.Request(url.encode('utf8'), None, headers)
-        except urllib2.HTTPError:
-            req = urllib2.Request(url, None, headers)
-        resp = urllib2.urlopen(req).read()
-        cookie.save(cookieFile, ignore_discard=True, ignore_expires=True)
-        return resp
+            resp = self.requestGet(url.encode('utf8'), headers, via_proxy)
+        except Exception:
+            resp = self.requestGet(url, headers, via_proxy)
+        return resp.text
 
     def addJS(self, responseString):
         logging.debug("additionalJS = %s" % self.additionalJS)
