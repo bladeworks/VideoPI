@@ -39,7 +39,7 @@ sreenHeight = 0
 lock = Lock()
 
 import logging
-logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
+logging.basicConfig(format='%(asctime)s %(threadName)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
                     filename=logStorage, level=logging.DEBUG)
 
 
