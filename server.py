@@ -191,7 +191,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
                 download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", ffmpeg_part)))
             ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
             download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                             % (ffmpeg_input, start, currentVideo.playUrl)
+                             % (ffmpeg_input, delta, currentVideo.playUrl)
             download_args += " && ".join(download_lines)
     else:
         if len(sections[start_idx:]) == 1:
