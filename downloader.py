@@ -113,15 +113,13 @@ class Downloader:
             result = self.write_queue.get()
             logging.debug("Begin write file")
             filename = "/tmp/download_part"
-            if not self.stopped:
-                with open(filename, 'a+b') as f:
-                    for v in sorted(result):
-                        f.write(result[v])
-                logging.debug("End write file")
-            else:
-                logging.debug("Write stopped")
-        logging.info("Finished all write.")
-        self.stopped = True
+            with open(filename, 'a+b') as f:
+                for v in sorted(result):
+                    f.write(result[v])
+            logging.debug("End write file")
+            if self.stopped and self.write_queue.empty():
+                logging.info("Write stopped")
+                break
 
     def computeSpeed(self, filesize, duration):
         speed = filesize / duration
@@ -177,6 +175,7 @@ class Downloader:
         # logging.debug("Finished part %s-%s", p, p + self.step_size)
         # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
         self.pool.wait_completion()
+        self.stopped = True
         logging.info("Finished download")
 
     def stop(self):
