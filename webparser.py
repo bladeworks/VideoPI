@@ -289,6 +289,7 @@ class WebParser:
             resp = self.requestGet(url.encode('utf8'), headers, via_proxy)
         except Exception:
             resp = self.requestGet(url, headers, via_proxy)
+        logging.debug("The encoding is: %s", resp.encoding)
         return resp.text
 
     def addJS(self, responseString):
