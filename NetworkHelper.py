@@ -32,10 +32,13 @@ class BatchRequests:
     def getOne(self, url):
         logging.info("Get %s", url)
         start_time = time.time()
-        if self.header_only:
-            resp = requests.head(url, headers=self.headers)
-        else:
-            resp = requests.get(url, headers=self.headers)
+        try:
+            if self.header_only:
+                resp = requests.head(url, headers=self.headers, timeout=5)
+            else:
+                resp = requests.get(url, headers=self.headers, timeout=5)
+        except Exception:
+            logging.exception("Got exception")
         duration = time.time() - start_time
         logging.info("It takes %s to get %s.", duration, url)
         self.results.append(Result(url, resp, duration))
