@@ -207,7 +207,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10, start_percent=0):
+    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
