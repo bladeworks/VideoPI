@@ -45,7 +45,7 @@ class ThreadPool:
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start=0):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
@@ -61,7 +61,7 @@ class Downloader:
         self.start_time = 0
         self.write_queue = Queue(1)
         self.write_thread = Thread(target=self.writeFile)
-        self.start = start
+        self.start_percent = start_percent
         self.start_byte = 0
 
     def download_part(self, part_num):
@@ -148,7 +148,7 @@ class Downloader:
             else:
                 logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
         logging.debug('info = %s', info)
-        self.total_length = int(int(info["content-length"]) * (1 - self.start))
+        self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
         self.start_byte = int(info["content-length"]) - self.total_length
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
