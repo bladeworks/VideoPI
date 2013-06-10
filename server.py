@@ -179,7 +179,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     p_list = []
     dp = download_program
     ffmpeg_input = ""
-    if len(sections[start_idx:] == 1):
+    if len(sections[start_idx:]) == 1:
         dp = "private"
     if dp == "private":
         multiDownloader = MultiDownloader(sections[start_idx:])
