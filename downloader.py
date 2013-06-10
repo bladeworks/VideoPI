@@ -55,6 +55,8 @@ class Downloader:
         self.step_done = False
         self.current_step_size = 0
         self.stopped = False
+        self.write_done = False
+        self.file_seq = 0
         self.start_percent = start_percent
         self.start_byte = 0
         self.getSizeInfo()
@@ -106,13 +108,13 @@ class Downloader:
                 assert filesize > (self.current_step_size - 1) * self.chunk_size
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
                 if not self.stopped:
-                    # self.write_queue.put(result.copy())
-                    logging.debug("Begin write file")
-                    filename = "/tmp/download_part"
-                    with open(filename, 'a+b') as f:
-                        for v in sorted(result):
-                            f.write(result[v])
-                    logging.debug("End write file")
+                    self.write_queue.put(result.copy())
+                    # logging.debug("Begin write file")
+                    # filename = "/tmp/download_part"
+                    # with open(filename, 'a+b') as f:
+                    #     for v in sorted(result):
+                    #         f.write(result[v])
+                    # logging.debug("End write file")
                 result.clear()
                 self.step_done = True
 
@@ -120,13 +122,15 @@ class Downloader:
         while True:
             result = self.write_queue.get()
             logging.debug("Begin write file")
-            filename = "/tmp/download_part"
+            filename = "/tmp/download_part/%s" % self.file_seq
             with open(filename, 'a+b') as f:
                 for v in sorted(result):
                     f.write(result[v])
             logging.debug("End write file")
+            self.file_seq += 1
             if self.stopped and self.write_queue.empty():
                 logging.info("Write stopped")
+                self.write_done = True
                 break
 
     def computeSpeed(self, filesize, duration):
@@ -165,7 +169,7 @@ class Downloader:
     def start(self):
         self.result_thread.start()
         self.download_thread.start()
-        # self.write_thread.start()
+        self.write_thread.start()
 
     def download(self):
         self.pool = ThreadPool(self.process_num)
@@ -189,6 +193,8 @@ class Downloader:
         # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
         self.pool.wait_completion()
         self.stopped = True
+        while (not self.write_done):
+            time.sleep(0.1)
         logging.info("Finished download")
 
     def stop(self):
@@ -196,7 +202,7 @@ class Downloader:
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
-        return "cat %s" % " ".join(['/tmp/download_part' for _ in range(self.file_num)])
+        return "cat %s" % " ".join(['/tmp/download_part/%s' % i for i in range(self.file_num)])
 
 
 class MultiDownloader:
@@ -237,7 +243,7 @@ class MultiDownloader:
         if self.currentDownloader:
             logging.info("Stopping currentDownloader")
             self.currentDownloader.stop()
-        self.releaseFiles(['/tmp/download_part'])
+            self.releaseFiles(['/tmp/download_part/%s' % self.currentDownloader.file_seq])
 
     def releaseFiles(self, files):
         def handler(signum, frame):

@@ -525,8 +525,9 @@ def getScreenSize():
 
 newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
-newFifo('/tmp/download_part')
 newFifo('/tmp/ffmpeg_part')
+for i in range(500):
+    newFifo('/tmp/download_part/%s' % i)
 getScreenSize()
 try:
     run(host='0.0.0.0', port=80, quiet=True)
