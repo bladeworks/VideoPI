@@ -527,6 +527,10 @@ newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
 newFifo('/tmp/ffmpeg_part')
 for i in range(500):
+    try:
+        os.mkdir('/tmp/download_part')
+    except OSError:
+        pass
     newFifo('/tmp/download_part/%s' % i)
 getScreenSize()
 try:

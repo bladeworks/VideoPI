@@ -244,6 +244,8 @@ class MultiDownloader:
             logging.info("Stopping currentDownloader")
             self.currentDownloader.stop()
             self.releaseFiles(['/tmp/download_part/%s' % self.currentDownloader.file_seq])
+            time.sleep(0.1)
+            self.releaseFiles(['/tmp/download_part/%s' % (self.currentDownloader.file_seq + 1)])
 
     def releaseFiles(self, files):
         def handler(signum, frame):
