@@ -179,13 +179,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     p_list = []
     dp = download_program
     ffmpeg_input = ""
-    if len(sections[start_idx:]) == 1:
+    if len(sections[start_idx:]) == 1 and delta == 0:
         dp = "private"
     if dp == "private":
-        if len(sections[start_idx:]) == 1 and delta > 0:
-            multiDownloader = MultiDownloader(sections[start_idx:], start_percent=(float(delta) / float(currentVideo.duration)))
-        else:        
-            multiDownloader = MultiDownloader(sections[start_idx:])
+        multiDownloader = MultiDownloader(sections[start_idx:])
         catCmds = multiDownloader.getCatCmds()
         ffmpeg_part = "/tmp/ffmpeg_part"
         currentVideo.downloader = multiDownloader
