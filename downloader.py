@@ -121,12 +121,12 @@ class Downloader:
     def writeFile(self):
         while True:
             result = self.write_queue.get()
-            logging.debug("Begin write file")
             filename = "/tmp/download_part/%s" % self.file_seq
+            logging.debug("Begin write file %s", filename)
             with open(filename, 'a+b') as f:
                 for v in sorted(result):
                     f.write(result[v])
-            logging.debug("End write file")
+            logging.debug("End write file %s" % filename)
             self.file_seq += 1
             if self.stopped and self.write_queue.empty():
                 logging.info("Write stopped")
