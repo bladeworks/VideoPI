@@ -55,14 +55,14 @@ class Downloader:
         self.step_done = False
         self.current_step_size = 0
         self.stopped = False
+        self.start_percent = start_percent
+        self.start_byte = 0
         self.getSizeInfo()
         self.result_thread = Thread(target=self.handleResult)
         self.download_thread = Thread(target=self.download)
         self.start_time = 0
         self.write_queue = Queue(1)
         self.write_thread = Thread(target=self.writeFile)
-        self.start_percent = start_percent
-        self.start_byte = 0
 
     def download_part(self, part_num):
         # Content-Range: bytes 0-499/1234
@@ -201,7 +201,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10, start=0):
+    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10, start_percent=0):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
@@ -213,7 +213,7 @@ class MultiDownloader:
         self.download_thread = Thread(target=self.download)
         for idx, url in enumerate(self.urls):
             if idx == 0:
-                downloader = Downloader(url, process_num, chunk_size, step_size, start)
+                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent)
             else:
                 downloader = Downloader(url, process_num, chunk_size, step_size)
             self.downloaders.append(downloader)
