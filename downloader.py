@@ -45,7 +45,7 @@ class ThreadPool:
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start=0):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
@@ -61,12 +61,14 @@ class Downloader:
         self.start_time = 0
         self.write_queue = Queue(1)
         self.write_thread = Thread(target=self.writeFile)
+        self.start = start
+        self.start_byte = 0
 
     def download_part(self, part_num):
         # Content-Range: bytes 0-499/1234
         # Content-Range: bytes 500-999/1234
-        start = part_num * self.chunk_size
-        end = (part_num + 1) * self.chunk_size - 1
+        start = self.start_byte + part_num * self.chunk_size
+        end = self.start_byte + (part_num + 1) * self.chunk_size - 1
         if end > self.total_length:
             end = self.total_length
         logging.debug("Begin download part %s", part_num)
@@ -146,7 +148,8 @@ class Downloader:
             else:
                 logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
         logging.debug('info = %s', info)
-        self.total_length = int(info["content-length"])
+        self.total_length = int(int(info["content-length"]) * (1 - self.start))
+        self.start_byte = int(info["content-length"]) - self.total_length
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
             self.total_part += 1
@@ -198,7 +201,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10):
+    def __init__(self, urls, process_num=5, chunk_size=1000000, step_size=10, start=0):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
@@ -208,8 +211,11 @@ class MultiDownloader:
         self.currentDownloader = None
         self.stopped = False
         self.download_thread = Thread(target=self.download)
-        for url in self.urls:
-            downloader = Downloader(url, process_num, chunk_size, step_size)
+        for idx, url in enumerate(self.urls):
+            if idx == 0:
+                downloader = Downloader(url, process_num, chunk_size, step_size, start)
+            else:
+                downloader = Downloader(url, process_num, chunk_size, step_size)
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
 

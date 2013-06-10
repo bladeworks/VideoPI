@@ -182,11 +182,14 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     if len(sections[start_idx:]) == 1:
         dp = "private"
     if dp == "private":
-        multiDownloader = MultiDownloader(sections[start_idx:])
+        if len(sections[start_idx:]) == 1 and delta > 0:
+            multiDownloader = MultiDownloader(sections[start_idx:], start=delta)
+        else:        
+            multiDownloader = MultiDownloader(sections[start_idx:])
         catCmds = multiDownloader.getCatCmds()
         ffmpeg_part = "/tmp/ffmpeg_part"
         currentVideo.downloader = multiDownloader
-        if len(catCmds) == 1:
+        if len(catCmds) == 1 and delta == 0:
             download_args += "%s > %s" % (catCmds[0], currentVideo.playUrl)
         else:
             for idx, catCmd in enumerate(catCmds):
