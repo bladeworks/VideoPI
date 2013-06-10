@@ -418,7 +418,9 @@ class ClubWebParser(WebParser):
         videoUrl = self.getElementText(ET.fromstring(responseString), 'nodelist/node').replace('&amp;', '&')
         logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
-        return Video(title.encode('utf8'), urllib2.quote(self.url), videoUrl, duration, self.site,
+        with open(playlistStorage, 'w') as f:
+            f.write(videoUrl)
+        return Video(title.encode('utf8'), urllib2.quote(self.url), playlistStorage, duration, self.site,
                      previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
 
     def parseWeb(self):
