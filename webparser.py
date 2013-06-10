@@ -15,6 +15,7 @@ except ImportError:
 from urlparse import urlparse, parse_qs
 from struct import unpack
 from config import *
+from NetworkHelper import *
 try:
     from userPrefs import *
 except:
@@ -383,6 +384,14 @@ class ClubWebParser(WebParser):
         if e is not None:
             return e.text
 
+    def getAllElementText(self, element, match):
+        es = element.findall(match)
+        texts = []
+        for e in es:
+            if e is not None:
+                texts.append(e.text)
+        return texts
+
     def getRelatedVideos(self, total, series, title):
         previousVideo, nextVideo = None, None
         allRelatedVideo = []
@@ -415,7 +424,8 @@ class ClubWebParser(WebParser):
             if step2url.startswith('http://g3.letv.com'):
                 break
         responseString = self.fetchWeb(step2url, ua=self.ua)
-        videoUrl = self.getElementText(ET.fromstring(responseString), 'nodelist/node').replace('&amp;', '&')
+        urls = [u.replace('&amp;', '&') for u in (self.getAllElementText(ET.fromstring(responseString), 'nodelist/node'))]
+        videoUrl = BatchRequests(urls).findFastest()
         logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
         with open(playlistStorage, 'w') as f:
