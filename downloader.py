@@ -147,7 +147,7 @@ class Downloader:
         else:
             return "%s B/s" % speed
 
-    def calcFileNum(self):
+    def calcFileNum(self, info):
         self.start_byte = int(info["content-length"]) - self.total_length
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
@@ -171,7 +171,7 @@ class Downloader:
                 logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
         logging.debug('info = %s', info)
         self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
-        self.calcFileNum()
+        self.calcFileNum(info)
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
