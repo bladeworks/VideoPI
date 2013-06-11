@@ -120,8 +120,6 @@ def play_list():
             else:
                 logging.info("Break")
                 imgService.end()
-                if currentVideo.downloader:
-                    currentVideo.downloader.stop()
                 if playQueue.empty():
                     imgService.begin(FINISHED)
                 break
