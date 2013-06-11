@@ -120,6 +120,8 @@ def play_list():
             else:
                 logging.info("Break")
                 imgService.end()
+                if currentVideo.downloader:
+                    currentVideo.downloader.stop()
                 if playQueue.empty():
                     imgService.begin(FINISHED)
                 break
@@ -184,8 +186,10 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
         dp = "private"
     if dp == "private":
         if len(sections[start_idx:]) == 1 and delta == 0:
-            multiDownloader = MultiDownloader(sections[start_idx:], outfile=currentVideo.playUrl)
+            multiDownloader = MultiDownloader(sections[start_idx:])
             currentVideo.downloader = multiDownloader
+            if multiDownloader.outfile != currentVideo.playUrl:
+                download_args += 'cat %s > %s &\n' % (' '.join(multiDownloader.getCatCmds()[0]), currentVideo.playUrl)
         else:
             multiDownloader = MultiDownloader(sections[start_idx:])
             catCmds = multiDownloader.getCatCmds()
