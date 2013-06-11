@@ -17,6 +17,7 @@ from pyomxplayer import OMXPlayer
 from show_image import *
 from downloader import *
 from config import *
+from Helper import *
 try:
     from userPrefs import *
 except:
@@ -182,16 +183,21 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
     if len(sections[start_idx:]) == 1 and delta == 0:
         dp = "private"
     if dp == "private":
-        multiDownloader = MultiDownloader(sections[start_idx:])
-        catCmds = multiDownloader.getCatCmds()
-        ffmpeg_part = "/tmp/ffmpeg_part"
-        currentVideo.downloader = multiDownloader
-        if len(catCmds) == 1 and delta == 0:
-            download_args += "%s > %s" % (catCmds[0], currentVideo.playUrl)
+        if len(sections[start_idx:]) == 1 and delta == 0:
+            multiDownloader = MultiDownloader(sections[start_idx:], outfile=currentVideo.playUrl)
+            currentVideo.downloader = multiDownloader
         else:
+            multiDownloader = MultiDownloader(sections[start_idx:])
+            catCmds = multiDownloader.getCatCmds()
+            ffmpeg_part = "/tmp/ffmpeg_part"
+            currentVideo.downloader = multiDownloader
+            p_list = []
             for idx, catCmd in enumerate(catCmds):
-                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", ffmpeg_part)))
-            ffmpeg_input = " ".join([ffmpeg_part for _ in range(len(catCmds))])
+                pname = os.path.join(ffmpeg_part, str(idx))
+                newFifo(pname)
+                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", pname)))
+                p_list.append(pname)
+            ffmpeg_input = " ".join(p_list)
             download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
                              % (ffmpeg_input, delta, currentVideo.playUrl)
             download_args += " && ".join(download_lines)
@@ -504,34 +510,10 @@ def error500(error):
     return ("Exception: %s\nDetails: %s" % (error.exception, error.traceback)).replace('\n', '<br>')
 
 
-def newFifo(filename):
-    try:
-        os.mkfifo(filename)
-    except OSError:
-        pass
-
-
-def getScreenSize():
-    try:
-        output = subprocess.check_output(['fbset'])
-        p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
-        global screenWidth, screenHeight
-        sw, sh = p.search(output).groups()
-        screenWidth = float(sw)
-        screenHeight = float(sh)
-    except:
-        logging.exception("Exception catched")
-
-
 newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
-newFifo('/tmp/ffmpeg_part')
-for i in range(500):
-    try:
-        os.mkdir('/tmp/download_part')
-    except OSError:
-        pass
-    newFifo('/tmp/download_part/%s' % i)
+newDir('/tmp/ffmpeg_part')
+newDir('/tmp/download_part')
 getScreenSize()
 try:
     run(host='0.0.0.0', port=80, quiet=True)

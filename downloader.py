@@ -7,6 +7,7 @@ import time
 import signal
 from threading import Thread
 from Queue import Queue
+from Helper import *
 
 
 class Worker(Thread):
@@ -45,12 +46,13 @@ class ThreadPool:
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0, outfile=None):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
         self.chunk_size = chunk_size
         self.step_size = step_size
+        self.outfile = outfile
         self.result_queue = Queue()
         self.step_done = False
         self.current_step_size = 0
@@ -120,7 +122,11 @@ class Downloader:
     def writeFile(self):
         while True:
             result = self.write_queue.get()
-            filename = "/tmp/download_part/%s" % self.file_seq
+            if self.outfile:
+                filename = self.outfile
+            else:
+                filename = "/tmp/download_part/%s" % self.file_seq
+                newFifo(filename)
             logging.debug("Begin write file %s", filename)
             with open(filename, 'a+b') as f:
                 for v in sorted(result):
@@ -141,17 +147,7 @@ class Downloader:
         else:
             return "%s B/s" % speed
 
-    def getSizeInfo(self):
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        for i in range(10):
-            resp = requests.head(self.url, headers=headers, allow_redirects=True)
-            if 200 <= resp.status_code < 300:
-                info = resp.headers
-                break
-            else:
-                logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
-        logging.debug('info = %s', info)
-        self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
+    def calcFileNum(self):
         self.start_byte = int(info["content-length"]) - self.total_length
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
@@ -163,6 +159,19 @@ class Downloader:
             newUrl = resp.history[-1].headers['location']
             self.url = newUrl
             logging.warn("Use the new url %s", newUrl)
+
+    def getSizeInfo(self):
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        for i in range(10):
+            resp = requests.head(self.url, headers=headers, allow_redirects=True)
+            if 200 <= resp.status_code < 300:
+                info = resp.headers
+                break
+            else:
+                logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
+        logging.debug('info = %s', info)
+        self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
+        self.calcFileNum()
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
@@ -206,7 +215,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0):
+    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0, outfile=None):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
@@ -216,11 +225,12 @@ class MultiDownloader:
         self.currentDownloader = None
         self.stopped = False
         self.download_thread = Thread(target=self.download)
+        self.outfile = outfile
         for idx, url in enumerate(self.urls):
             if idx == 0:
-                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent)
+                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent, outfile=self.outfile)
             else:
-                downloader = Downloader(url, process_num, chunk_size, step_size)
+                downloader = Downloader(url, process_num, chunk_size, step_size, outfile=self.outfile)
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
 
@@ -243,7 +253,10 @@ class MultiDownloader:
             logging.info("Stopping currentDownloader")
             self.currentDownloader.stop()
             while not self.currentDownloader.write_done:
-                self.releaseFiles(['/tmp/download_part/%s' % self.currentDownloader.file_seq])
+                if self.outfile:
+                    self.releaseFiles([self.outfile])
+                else:
+                    self.releaseFiles(['/tmp/download_part/%s' % self.currentDownloader.file_seq])
                 time.sleep(0.1)
 
     def releaseFiles(self, files):
