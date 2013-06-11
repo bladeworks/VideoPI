@@ -119,6 +119,8 @@ def play_list():
                         logging.exception("Got exception")
             else:
                 logging.info("Break")
+                if currentVideo.downloader:
+                    currentVideo.downloader.stop()
                 imgService.end()
                 if playQueue.empty():
                     imgService.begin(FINISHED)
