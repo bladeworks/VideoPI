@@ -46,7 +46,7 @@ class ThreadPool:
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0, outfile=None):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0, outfile=None, file_seq=0):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
@@ -58,7 +58,7 @@ class Downloader:
         self.current_step_size = 0
         self.stopped = False
         self.write_done = False
-        self.file_seq = 0
+        self.file_seq = self.file_seq
         self.start_percent = start_percent
         self.start_byte = 0
         self.getSizeInfo()
@@ -223,11 +223,15 @@ class MultiDownloader:
         self.stopped = False
         self.download_thread = Thread(target=self.download)
         self.outfile = outfile
+        file_seq = 0
         for idx, url in enumerate(self.urls):
             if idx == 0:
-                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent, outfile=self.outfile)
+                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
+                                        outfile=self.outfile, file_seq=file_seq)
             else:
-                downloader = Downloader(url, process_num, chunk_size, step_size, outfile=self.outfile)
+                downloader = Downloader(url, process_num, chunk_size, step_size,
+                                        outfile=self.outfile, file_seq=file_seq)
+            file_seq += downloader.file_num
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
 
