@@ -147,19 +147,6 @@ class Downloader:
         else:
             return "%s B/s" % speed
 
-    def calcFileNum(self, info):
-        self.start_byte = int(info["content-length"]) - self.total_length
-        self.total_part = int(self.total_length / self.chunk_size)
-        if self.total_length % self.chunk_size > 0:
-            self.total_part += 1
-        self.file_num = int(self.total_part / self.step_size)
-        if self.total_part % self.step_size > 0:
-            self.file_num += 1
-        if resp.history:
-            newUrl = resp.history[-1].headers['location']
-            self.url = newUrl
-            logging.warn("Use the new url %s", newUrl)
-
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
         for i in range(10):
@@ -171,7 +158,17 @@ class Downloader:
                 logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
         logging.debug('info = %s', info)
         self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
-        self.calcFileNum(info)
+        self.start_byte = int(info["content-length"]) - self.total_length
+        self.total_part = int(self.total_length / self.chunk_size)
+        if self.total_length % self.chunk_size > 0:
+            self.total_part += 1
+        self.file_num = int(self.total_part / self.step_size)
+        if self.total_part % self.step_size > 0:
+            self.file_num += 1
+        if resp.history:
+            newUrl = resp.history[-1].headers['location']
+            self.url = newUrl
+            logging.warn("Use the new url %s", newUrl)
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
