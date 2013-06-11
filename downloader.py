@@ -79,6 +79,9 @@ class Downloader:
         headers = {'Range': 'bytes=%s-%s' % (start, end), 'User-Agent': 'Mozilla/5.0'}
         retries = 20
         for i in range(retries):
+            if self.stopped:
+                self.result_queue.put({part_num: ""})
+                return
             try:
                 resp = requests.get(self.url, headers=headers, allow_redirects=True)
                 if 200 <= resp.status_code < 300:
@@ -100,6 +103,9 @@ class Downloader:
         result = {}
         while not self.stopped:
             r = self.result_queue.get()
+            if self.stopped:
+                self.write_queue.put("")
+                return
             result.update(r)
             if len(result) == self.current_step_size:
                 logging.info("Finished step with size %s", self.current_step_size)
@@ -122,17 +128,18 @@ class Downloader:
     def writeFile(self):
         while True:
             result = self.write_queue.get()
-            if self.outfile:
-                filename = self.outfile
-            else:
-                filename = "/tmp/download_part/%s" % self.file_seq
-                newFifo(filename)
-            logging.debug("Begin write file %s", filename)
-            with open(filename, 'a+b') as f:
-                for v in sorted(result):
-                    f.write(result[v])
-            logging.debug("End write file %s" % filename)
-            self.file_seq += 1
+            if result:
+                if self.outfile:
+                    filename = self.outfile
+                else:
+                    filename = "/tmp/download_part/%s" % self.file_seq
+                    newFifo(filename)
+                logging.debug("Begin write file %s", filename)
+                with open(filename, 'a+b') as f:
+                    for v in sorted(result):
+                        f.write(result[v])
+                logging.debug("End write file %s" % filename)
+                self.file_seq += 1
             if self.stopped and self.write_queue.empty():
                 logging.info("Write stopped")
                 self.write_done = True
@@ -150,6 +157,8 @@ class Downloader:
     def getSizeInfo(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
         for i in range(10):
+            if self.stopped:
+                return
             resp = requests.head(self.url, headers=headers, allow_redirects=True)
             if 200 <= resp.status_code < 300:
                 info = resp.headers
