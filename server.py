@@ -187,7 +187,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             multiDownloader = MultiDownloader(sections[start_idx:])
             currentVideo.downloader = multiDownloader
             if multiDownloader.outfile != currentVideo.playUrl:
-                download_args += '%s > %s 2>/tmp/cat.log\n' % (multiDownloader.getCatCmds()[0], currentVideo.playUrl)
+                download_args += '%s > %s 2>/tmp/cat.log' % (multiDownloader.getCatCmds()[0], currentVideo.playUrl)
         else:
             multiDownloader = MultiDownloader(sections[start_idx:])
             catCmds = multiDownloader.getCatCmds()
@@ -516,6 +516,9 @@ newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
 newDir('/tmp/ffmpeg_part')
 newDir('/tmp/download_part')
+for i in range(1000):
+    newFifo(os.path.join(['/tmp/download_part', i]))
+
 
 def getScreenSize():
     try:

@@ -7,7 +7,6 @@ import time
 import signal
 from threading import Thread
 from Queue import Queue
-from Helper import *
 
 
 class Worker(Thread):
@@ -178,8 +177,6 @@ class Downloader:
             newUrl = resp.history[-1].headers['location']
             self.url = newUrl
             logging.warn("Use the new url %s", newUrl)
-        for i in range(self.file_seq, self.file_seq + self.file_num):
-            newFifo('/tmp/download_part/%s' % i)
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
