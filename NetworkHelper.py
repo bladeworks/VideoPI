@@ -32,6 +32,7 @@ class BatchRequests:
     def getOne(self, url):
         logging.info("Get %s", url)
         start_time = time.time()
+        resp = None
         try:
             if self.header_only:
                 resp = requests.head(url, headers=self.headers, timeout=5)
