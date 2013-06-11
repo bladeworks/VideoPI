@@ -110,10 +110,13 @@ done\n""" % (download_file, download_cache_size)
                 if r:
                     self.position = float(r.group('position'))
 
-    def _send_cmd(self, cmd):
+    def _send_cmd(self, cmd, wait=False):
         if self.isalive():
             logging.debug("Sending %s", cmd)
-            subprocess.Popen("echo -n %s > /tmp/cmd" % cmd, shell=True)
+            if wait:
+                subprocess.call("echo -n %s > /tmp/cmd" % cmd, shell=True)
+            else:
+                subprocess.Popen("echo -n %s > /tmp/cmd" % cmd, shell=True)
 
     def toggle_pause(self):
         self._send_cmd(self._PAUSE_CMD)
@@ -122,7 +125,7 @@ done\n""" % (download_file, download_cache_size)
         self._send_cmd(self._TOGGLE_SUB_CMD)
 
     def stop(self):
-        self._send_cmd(self._QUIT_CMD)
+        self._send_cmd(self._QUIT_CMD, True)
         os.killpg(self._process.pid, signal.SIGTERM)
         if self.currentVideo.downloader:
             self.currentVideo.downloader.stop()
