@@ -136,6 +136,7 @@ class Downloader:
                 logging.debug("Begin write file %s", filename)
                 with open(filename, 'a+b') as f:
                     for v in sorted(result):
+                        logging.debug("write part %s" % v)
                         f.write(result[v])
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
