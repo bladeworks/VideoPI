@@ -58,7 +58,7 @@ class Downloader:
         self.current_step_size = 0
         self.stopped = False
         self.write_done = False
-        self.file_seq = self.file_seq
+        self.file_seq = file_seq
         self.start_percent = start_percent
         self.start_byte = 0
         self.getSizeInfo()
