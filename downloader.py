@@ -133,7 +133,6 @@ class Downloader:
                     filename = self.outfile
                 else:
                     filename = "/tmp/download_part/%s" % self.file_seq
-                    newFifo(filename)
                 logging.debug("Begin write file %s", filename)
                 with open(filename, 'a+b') as f:
                     for v in sorted(result):
@@ -178,6 +177,8 @@ class Downloader:
             newUrl = resp.history[-1].headers['location']
             self.url = newUrl
             logging.warn("Use the new url %s", newUrl)
+        for i in range(self.file_seq, self.file_seq + self.file_num):
+            newFifo('/tmp/download_part/%s' % i)
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
