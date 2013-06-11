@@ -514,6 +514,18 @@ newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
 newDir('/tmp/ffmpeg_part')
 newDir('/tmp/download_part')
+
+def getScreenSize():
+    try:
+        output = subprocess.check_output(['fbset'])
+        p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
+        global screenWidth, screenHeight
+        sw, sh = p.search(output).groups()
+        screenWidth = float(sw)
+        screenHeight = float(sh)
+    except:
+        logging.exception("Exception catched")
+
 getScreenSize()
 try:
     run(host='0.0.0.0', port=80, quiet=True)
