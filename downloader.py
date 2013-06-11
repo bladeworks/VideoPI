@@ -207,7 +207,7 @@ class Downloader:
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
-        return "cat %s" % " ".join(['/tmp/download_part/%s' % i for i in range(self.file_num)])
+        return "cat %s" % " ".join(['/tmp/download_part/%s' % i for i in range(self.file_seq, self.file_seq + self.file_num)])
 
 
 class MultiDownloader:
