@@ -526,7 +526,7 @@ newFifo('/tmp/cmd')
 newDir('/tmp/ffmpeg_part')
 newDir('/tmp/download_part')
 for i in range(1000):
-    newFifo('/tmp/ffmpeg_part/%s' % i)
+    newFifo('/tmp/download_part/%s' % i)
 
 
 def getScreenSize():
