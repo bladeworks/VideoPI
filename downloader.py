@@ -115,7 +115,7 @@ class Downloader:
                     filesize += len(v)
                 assert filesize > (self.current_step_size - 1) * self.chunk_size
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
-                self.write_queue.put(''.join(result.values))
+                self.write_queue.put(''.join(result.values()))
                     # logging.debug("Begin write file")
                     # filename = "/tmp/download_part"
                     # with open(filename, 'a+b') as f:
