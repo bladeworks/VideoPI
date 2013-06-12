@@ -35,9 +35,9 @@ class BatchRequests:
         resp = None
         try:
             if self.header_only:
-                resp = requests.head(url, headers=self.headers, timeout=5)
+                resp = requests.head(url, headers=self.headers, timeout=2)
             else:
-                resp = requests.get(url, headers=self.headers, timeout=5)
+                resp = requests.get(url, headers=self.headers, timeout=2)
         except Exception:
             logging.exception("Got exception")
         duration = time.time() - start_time
