@@ -335,6 +335,7 @@ def history_play():
     currentVideo = db_getById(request.query.id)
     start = int(request.query.start)
     if start >= 0:
+        logging.info("Start from %s." % start)
         currentVideo.progress = start
         db_writeHistory(currentVideo)
     redirect('/forward?site=%s&url=%s&dbid=%s' % (currentVideo.site, currentVideo.url,
