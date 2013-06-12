@@ -333,6 +333,10 @@ def index():
 def history_play():
     global currentVideo
     currentVideo = db_getById(request.query.id)
+    start = int(request.query.start)
+    if start >= 0:
+        currentVideo.progress = start
+        db_writeHistory(currentVideo)
     redirect('/forward?site=%s&url=%s&dbid=%s' % (currentVideo.site, currentVideo.url,
              currentVideo.dbid))
 

@@ -126,14 +126,15 @@
 	  			<div class="ui-bar">
 	  				<a href="#" onclick="clearHistory();return false" data-role="button" data-inline="true" data-mini="true">Clear all the history</a>
 	  			</div>
-	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView" data-split-icon="delete">
+	  			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Find history" id="historyListView">
 	  				%for h in history:
 	                    <li>
-	                        <a href="/play?id={{h.dbid}}" class="ui-link-inherit" data-ajax="false">
+	                        <a href="/play?id={{h.dbid}}&start=-1" class="ui-link-inherit" data-ajax="false">
 	                            <h3>{{h.title}}({{websites[h.site]['title']}})</h3>
 	                            <p>总共{{h.durationToStr()}}(上次播放到{{h.formatDuration(h.progress)}})</p>
 	                        </a>
-	                        <a href="#" onclick="deleteHistory('{{h.dbid}}');return false"></a>
+	                        <a href="/play?id={{h.dbid}}&start=0" class="split-button-custom" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false"></a>
+	                        <a href="#" onclick="deleteHistory('{{h.dbid}}');return false" class="split-button-custom" data-role="button" data-icon="delete" data-iconpos="notext"></a>
 	                    </li>
                     %end
 	  			</ul>

@@ -33,3 +33,28 @@ input.ui-slider-input {
 .ui-slider-track, .ui-slider-switch {
 	margin: 0 0;
 }
+
+.split-button-custom {
+    float: right;
+    margin-right: 10px;
+    margin-top: -32px;
+    border-bottom-left-radius: 1em 1em;
+    border-bottom-right-radius: 1em 1em;
+    border-top-left-radius: 1em 1em;
+    border-top-right-radius: 1em 1em;   
+}
+
+.split-button-custom span.ui-btn-inner {
+    border-bottom-left-radius: 1em 1em;
+    border-bottom-right-radius: 1em 1em;
+    border-top-left-radius: 1em 1em;
+    border-top-right-radius: 1em 1em;
+    padding-right: 0px;
+}
+
+.split-button-custom span.ui-icon {
+    margin-top: 0px;
+    right: 0px;
+    top: 0px;
+    position: relative;
+}
