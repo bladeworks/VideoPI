@@ -84,7 +84,6 @@ class Downloader:
             try:
                 resp = requests.get(self.url, headers=headers, allow_redirects=True)
                 if 200 <= resp.status_code < 300:
-                    assert len(resp.content) == (end - start + 1)
                     self.result_queue.put({part_num: resp.content})
                     break
                 else:
