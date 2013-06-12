@@ -133,8 +133,8 @@
 	                            <h3>{{h.title}}({{websites[h.site]['title']}})</h3>
 	                            <p>总共{{h.durationToStr()}}(上次播放到{{h.formatDuration(h.progress)}})</p>
 	                        </a>
-	                        <a href="/play?id={{h.dbid}}&start=0" class="split-button-custom" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false"></a>
 	                        <a href="#" onclick="deleteHistory('{{h.dbid}}');return false" class="split-button-custom" data-role="button" data-icon="delete" data-iconpos="notext"></a>
+	                        <a href="/play?id={{h.dbid}}&start=0" class="split-button-custom" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false"></a>
 	                        <a href="#" style="display: none;">Dummy</a>
 	                    </li>
                     %end
