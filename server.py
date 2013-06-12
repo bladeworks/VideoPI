@@ -386,10 +386,12 @@ def history():
                                 <h3>%s(%s)</h3>
                                 <p>总共%s(上次播放到%s)</p>
                             </a>
-                            <a href="#" onclick="deleteHistory('%s');return false"></a>
+                            <a href="#" onclick="deleteHistory('%s');return false" class="split-button-custom" data-role="button" data-icon="delete" data-iconpos="notext"></a>
+                            <a href="/play?id=%s&start=0" class="split-button-custom" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false"></a>
+                            <a href="#" style="display: none;">Dummy</a>
                         </li>
                         """ % (video.dbid, video.title, websites[video.site]['title'],
-                               video.durationToStr(), Video.formatDuration(video.progress), video.dbid)
+                               video.durationToStr(), Video.formatDuration(video.progress), video.dbid, video.dbid)
     return responseString
 
 
