@@ -27,8 +27,6 @@ class OMXPlayer(object):
 
     def __init__(self, currentVideo, screenWidth=0, screenHeight=0):
         self.currentVideo = currentVideo
-        if self.currentVideo.downloader:
-            self.currentVideo.downloader.start()
         args = self.getArgs(screenWidth, screenHeight)
         if additonal_omxplayer_args:
             args += " %s" % additonal_omxplayer_args
@@ -45,6 +43,8 @@ class OMXPlayer(object):
         self.position = 0
         self._position_thread = Thread(target=self._get_position)
         self._position_thread.start()
+        if self.currentVideo.downloader:
+            self.currentVideo.downloader.start()
 
     def getFileSizeTest(self):
         return """
