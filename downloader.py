@@ -84,6 +84,7 @@ class Downloader:
             try:
                 resp = requests.get(self.url, headers=headers, allow_redirects=True)
                 if 200 <= resp.status_code < 300:
+                    assert len(resp.content) == (end - start + 1)
                     self.result_queue.put({part_num: resp.content})
                     break
                 else:
@@ -114,7 +115,7 @@ class Downloader:
                     filesize += len(v)
                 assert filesize > (self.current_step_size - 1) * self.chunk_size
                 logging.debug("The avg speed is %s", self.computeSpeed(filesize, (end_time - self.start_time)))
-                self.write_queue.put(result.copy())
+                self.write_queue.put(''.join(result.values))
                     # logging.debug("Begin write file")
                     # filename = "/tmp/download_part"
                     # with open(filename, 'a+b') as f:
@@ -134,9 +135,7 @@ class Downloader:
                     filename = "/tmp/download_part/%s" % self.file_seq
                 logging.debug("Begin write file %s", filename)
                 with open(filename, 'a+b') as f:
-                    for v in sorted(result):
-                        logging.debug("write part %s" % v)
-                        f.write(result[v])
+                    f.write(result)
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
