@@ -251,7 +251,7 @@ class MultiDownloader:
             logging.info("Start downloading %s - %s" % (idx + 1, downloader.url))
             self.currentDownloader = downloader
             self.currentDownloader.start()
-            while not self.currentDownloader.stopped:
+            while not self.currentDownloader.write_done:
                 time.sleep(0.1)
 
     def stop(self):
