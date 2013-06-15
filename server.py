@@ -161,10 +161,10 @@ def wrapRetry(cmd, max_retry=20):
 
 def getFfmpegCmd(ss, inputFile, outputFile):
     if ss > 0:
-        return 'nice -n 30 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+        return 'nice -n 19 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
                % (ss, inputFile, outputFile, outputFile)
     else:
-        return 'nice -n 30 ffmpeg -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+        return 'nice -n 19 ffmpeg -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
                % (inputFile, outputFile, outputFile)
 
 
