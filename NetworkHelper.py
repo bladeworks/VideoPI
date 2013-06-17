@@ -21,16 +21,16 @@ class BatchRequests:
         self.urls = urls
         self.header_only = header_only
         self.headers = headers
-        self.results = []
+        self.results = [None] * len(urls)
 
     def get(self):
         pool = ThreadPool(len(self.urls))
-        for url in self.urls:
-            pool.add_task(self.getOne, url)
+        for idx, url in enumerate(self.urls):
+            pool.add_task(self.getOne, url, idx)
         pool.wait_completion()
         return self.results
 
-    def getOne(self, url):
+    def getOne(self, url, idx):
         logging.info("Get %s", url)
         start_time = time.time()
         resp = None
@@ -45,7 +45,7 @@ class BatchRequests:
             url = resp.history[-1].headers['location']
         duration = time.time() - start_time
         logging.info("It takes %s to get %s.", duration, url)
-        self.results.append(Result(url, resp, duration))
+        self.results[idx] = Result(url, resp, duration)
 
     def findFastest(self):
         if not self.results:
