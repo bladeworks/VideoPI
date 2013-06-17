@@ -240,7 +240,7 @@ class MultiDownloader:
         ress = BatchRequests(self.urls).get()
         for idx, res in enumerate(ress):
             url = res.url
-            total_length = int(res.headers["content-length"])
+            total_length = int(res.resp.headers["content-length"])
             if idx == 0:
                 downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
