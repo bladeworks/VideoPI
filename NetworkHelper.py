@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 import requests
-from downloader import ThreadPool
+from Helper import ThreadPool
 import time
 import logging
 
