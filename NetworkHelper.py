@@ -40,6 +40,8 @@ class BatchRequests:
                 resp = requests.get(url, headers=self.headers, timeout=2)
         except Exception:
             logging.exception("Got exception")
+        if resp and resp.history:
+            url = resp.history[-1].headers['location']
         duration = time.time() - start_time
         logging.info("It takes %s to get %s.", duration, url)
         self.results.append(Result(url, resp, duration))
@@ -51,6 +53,13 @@ class BatchRequests:
         logging.info("The fastest in %s is %s", self.urls, fastest)
         return fastest
 
+    def rank(self):
+        if not self.results:
+            self.get()
+        ranked = [r.url for r in sorted(self.results, key=lambda result: result.duration) if r.duration < 2]
+        logging.info("Ranked = %s" % ranked)
+        return ranked
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    BatchRequests(['http://www.google.com', 'http://www.baidu.com', 'http://192.168.1.100']).findFastest()
+    BatchRequests(['http://www.google.com', 'http://www.baidu.com', 'http://192.168.1.100']).rank()

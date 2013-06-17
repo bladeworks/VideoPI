@@ -5,8 +5,21 @@ import requests
 import logging
 import time
 import signal
-from threading import Thread
+from threading import Thread, current_thread
 from Queue import Queue
+from contextlib import contextmanager
+
+
+@contextmanager
+def runWithTimeout(timeout=1):
+    def handler(signum, frame):
+        raise IOError("Time out")
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 
 class Worker(Thread):
@@ -45,13 +58,15 @@ class ThreadPool:
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0, outfile=None, file_seq=0):
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0,
+                 outfile=None, file_seq=0, alternativeUrls=[]):
         self.url = url
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
         self.chunk_size = chunk_size
         self.step_size = step_size
         self.outfile = outfile
+        self.alternativeUrls = alternativeUrls
         self.result_queue = Queue()
         self.step_done = False
         self.current_step_size = 0
@@ -82,9 +97,32 @@ class Downloader:
                 self.result_queue.put({part_num: ""})
                 return
             try:
-                resp = requests.get(self.url, headers=headers, allow_redirects=True, timeout=2)
+                # resp = requests.get(self.url, headers=headers, allow_redirects=True, timeout=2)
+                # if 200 <= resp.status_code < 300:
+                #     self.result_queue.put({part_num: resp.content})
+                #     break
+                # else:
+                #     logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
+                resp = requests.get(self.url, headers=headers, allow_redirects=True, timeout=2, stream=True)
                 if 200 <= resp.status_code < 300:
-                    self.result_queue.put({part_num: resp.content})
+                    # self.result_queue.put({part_num: resp.content})
+                    it = resp.iter_content(500000)
+                    content = ""
+                    chun_start_time = time.time()
+                    timeout = 30
+                    while True:
+                        if (time.time() - chun_start_time) > timeout:
+                            raise Exception("Timeout while downloading %s" % part_num)
+                        if self.stopped:
+                            self.result_queue.put({part_num: ""})
+                            return
+                        try:
+                            next = it.next()
+                        except StopIteration:
+                            break
+                        if next:
+                            content += next
+                    self.result_queue.put({part_num: content})
                     break
                 else:
                     logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
@@ -92,6 +130,7 @@ class Downloader:
                 # if not isinstance(err.reason, socket.timeout):
                 #     raise err
                 # else:
+                logging.exception("")
                 logging.info("Retry %s", i + 1)
         else:
             self.stopped = True
@@ -127,8 +166,11 @@ class Downloader:
                 else:
                     filename = "/tmp/download_part/%s" % self.file_seq
                 logging.debug("Begin write file %s", filename)
-                with open(filename, 'a+b') as f:
-                    f.write(result)
+                try:
+                    with open(filename, 'a+b') as f:
+                        f.write(result)
+                except:
+                    logging.exception("Got exception")
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
@@ -212,7 +254,7 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0, outfile=None):
+    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0, outfile=None, alternativeUrls=[]):
         self.urls = urls
         self.process_num = process_num
         self.chunk_size = chunk_size
@@ -227,10 +269,12 @@ class MultiDownloader:
         for idx, url in enumerate(self.urls):
             if idx == 0:
                 downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
-                                        outfile=self.outfile, file_seq=file_seq)
+                                        outfile=self.outfile, file_seq=file_seq,
+                                        alternativeUrls=alternativeUrls)
             else:
                 downloader = Downloader(url, process_num, chunk_size, step_size,
-                                        outfile=self.outfile, file_seq=file_seq)
+                                        outfile=self.outfile, file_seq=file_seq,
+                                        alternativeUrls=alternativeUrls)
             file_seq += downloader.file_num
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
@@ -261,20 +305,17 @@ class MultiDownloader:
                 time.sleep(0.1)
 
     def releaseFiles(self, files):
-        def handler(signum, frame):
-            raise IOError("Time out")
-
-        signal.signal(signal.SIGALRM, handler)
-        signal.alarm(1)
-        for f in files:
-            try:
-                with open(f) as f1:
-                    f1.read()
-            except:
-                pass
-            finally:
-                logging.info("File %s released" % f)
-        signal.alarm(0)
+        def readFile():
+            for f in files:
+                try:
+                    with open(f) as f1:
+                        f1.read()
+                except:
+                    pass
+                finally:
+                    logging.info("File %s released" % f)
+        with runWithTimeout(1):
+            readFile()
 
     def getCatCmds(self):
         logging.info("catCmds: %s" % self.catCmds)
@@ -282,7 +323,7 @@ class MultiDownloader:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    downloader = MultiDownloader(['http://f.youku.com/player/getFlvPath/sid/00_00/st/flv/fileid/0300011400511B74719AE2032DBBC7299B4E30-E304-34BD-DD12-0E375AE4E342?K=3f40f9097a3ef7f3261d0bc4'])
+    downloader = MultiDownloader(['http://220.181.155.130/10/19/103/2101638103.0.flv?crypt=58785b5eaa7f2e540&b=1782&gn=820&nc=6&bf=24&p2p=1&video_type=flv&check=0&tm=1371522600&key=013f54127478b083e01859e0c0b77f77&opck=0&lgn=letv&proxy=3702889409&cipi=3702878110&geo=CN-1-0-1&tsnp=1&mmsid=1638103&platid=8&splatid=800&playid=0&tss=no&tag=box'], process_num=5)
     downloader.start()
     time.sleep(25)
     downloader.stop()

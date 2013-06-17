@@ -42,7 +42,8 @@ class Video:
     def __init__(self, title, url, realUrl, duration, site, typeid=1,
                  dbid=None, availableFormat=[], currentFormat=None,
                  previousVideo=None, nextVideo=None, allRelatedVideo=[],
-                 progress=0, sections=[], start_pos=0, download_args=None, playUrl=None):
+                 progress=0, sections=[], start_pos=0, download_args=None, playUrl=None,
+                 alternativeUrls=[]):
         self.title = str(title)
         self.url = url
         self.realUrl = realUrl
@@ -63,6 +64,7 @@ class Video:
         self.start_pos = start_pos
         self.download_args = download_args
         self.downloader = None
+        self.alternativeUrls = alternativeUrls
         self.width, self.height = (0, 0)
         if int(self.duration) == 0 and self.realUrl:
             self.duration = self.getDurationWithFfmpeg(self.realUrl)
@@ -425,13 +427,16 @@ class ClubWebParser(WebParser):
                 break
         responseString = self.fetchWeb(step2url, ua=self.ua)
         urls = [u.replace('&amp;', '&') for u in (self.getAllElementText(ET.fromstring(responseString), 'nodelist/node'))]
-        videoUrl = BatchRequests(urls).findFastest()
+        ranked = BatchRequests(urls).rank()
+        videoUrl = ranked[0]
+        alternativeUrls = ranked[1:]
         logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
         with open(playlistStorage, 'w') as f:
             f.write(videoUrl)
         return Video(title.encode('utf8'), urllib2.quote(self.url), playlistStorage, duration, self.site,
-                     previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo)
+                     previousVideo=previousVideo, nextVideo=nextVideo, allRelatedVideo=allRelatedVideo,
+                     alternativeUrls=alternativeUrls)
 
     def parseWeb(self):
         logging.info("parseWeb %s", self.url)
