@@ -5,9 +5,10 @@ import requests
 import logging
 import time
 import signal
-from threading import Thread, current_thread
+from threading import Thread
 from Queue import Queue
 from contextlib import contextmanager
+from NetworkHelper import BatchRequests
 
 
 @contextmanager
@@ -59,8 +60,9 @@ class ThreadPool:
 class Downloader:
 
     def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0,
-                 outfile=None, file_seq=0, alternativeUrls=[]):
+                 outfile=None, file_seq=0, alternativeUrls=[], total_length=None):
         self.url = url
+        self.total_length = total_length
         logging.info("Construct downloader for url %s", self.url)
         self.process_num = process_num
         self.chunk_size = chunk_size
@@ -187,19 +189,22 @@ class Downloader:
             return "%s B/s" % speed
 
     def getSizeInfo(self):
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        for i in range(10):
-            if self.stopped:
-                return
-            resp = requests.head(self.url, headers=headers, allow_redirects=True, timeout=2)
-            if 200 <= resp.status_code < 300:
-                info = resp.headers
-                break
-            else:
-                logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
-        logging.debug('info = %s', info)
-        self.total_length = int(int(info["content-length"]) * (1 - self.start_percent))
-        self.start_byte = int(info["content-length"]) - self.total_length
+        if not self.total_length:
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            for i in range(10):
+                if self.stopped:
+                    return
+                resp = requests.head(self.url, headers=headers, allow_redirects=True, timeout=2)
+                if 200 <= resp.status_code < 300:
+                    info = resp.headers
+                    break
+                else:
+                    logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
+            logging.debug('info = %s', info)
+            self.total_length = int(int[info["content-length"]])
+        new_length = self.total_length * (1 - self.start_percent)
+        self.start_byte = self.total_length - new_length
+        self.total_length = new_length
         self.total_part = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
             self.total_part += 1
@@ -265,18 +270,24 @@ class MultiDownloader:
         self.download_thread = Thread(target=self.download)
         self.outfile = outfile
         file_seq = 0
-        for idx, url in enumerate(self.urls):
+        ress = BatchRequests(self.urls).get()
+        for idx, res in enumerate(ress):
+            url = res.url
+            total_length = int(res.headers["content-length"])
             if idx == 0:
                 downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
-                                        alternativeUrls=alternativeUrls)
+                                        alternativeUrls=alternativeUrls, total_length=total_length)
             else:
                 downloader = Downloader(url, process_num, chunk_size, step_size,
                                         outfile=self.outfile, file_seq=file_seq,
-                                        alternativeUrls=alternativeUrls)
+                                        alternativeUrls=alternativeUrls, total_length=total_length)
             file_seq += downloader.file_num
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
+
+    def getSizeInfo(self):
+        pass
 
     def start(self):
         self.download_thread.start()

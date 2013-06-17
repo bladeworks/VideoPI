@@ -17,7 +17,7 @@ class Result:
 
 class BatchRequests:
 
-    def __init__(self, urls, header_only=True, headers=None):
+    def __init__(self, urls, header_only=True, headers={'User-Agent': 'Mozilla/5.0'}):
         self.urls = urls
         self.header_only = header_only
         self.headers = headers
@@ -28,6 +28,7 @@ class BatchRequests:
         for url in self.urls:
             pool.add_task(self.getOne, url)
         pool.wait_completion()
+        return self.results
 
     def getOne(self, url):
         logging.info("Get %s", url)
