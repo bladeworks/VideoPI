@@ -51,7 +51,7 @@ class Downloader:
         self.write_queue = Queue(1)
         self.write_thread = Thread(target=self.writeFile)
 
-    def download_part(self, part_num):
+    def download_part(self, part_num, session):
         # Content-Range: bytes 0-499/1234
         # Content-Range: bytes 500-999/1234
         start = self.start_byte + part_num * self.chunk_size
@@ -69,7 +69,7 @@ class Downloader:
                 url = self.url
                 if self.alternativeUrls:
                     url = self.alternativeUrls[(part_num + retries) % (len(self.alternativeUrls))]
-                resp = requests.get(url, headers=headers, allow_redirects=True, timeout=2, stream=True)
+                resp = session.get(url, headers=headers, allow_redirects=True, timeout=2, stream=True)
                 if 200 <= resp.status_code < 300:
                     it = resp.iter_content(500000)
                     content = ""
@@ -191,29 +191,34 @@ class Downloader:
 
     def download(self):
         self.pool = ThreadPool(self.process_num)
-        for start in range(0, self.total_part, self.step_size):
-            if self.stopped:
-                break
-            self.step_done = False
-            self.start_time = time.time()
-            end = start + self.step_size
-            if end > self.total_part:
-                end = self.total_part
-            self.current_step_size = end - start
-            for i in range(start, end):
-                self.pool.add_task(self.download_part, i)
-            while True:
-                if self.step_done or self.stopped:
+        try:
+            sessions = [requests.Session()] * self.step_size
+            for start in range(0, self.total_part, self.step_size):
+                if self.stopped:
                     break
-                else:
-                    time.sleep(0.2)
-        # logging.debug("Finished part %s-%s", p, p + self.step_size)
-        # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
-        self.pool.wait_completion()
-        self.stopped = True
-        while (not self.write_done):
-            time.sleep(0.1)
-        logging.info("Finished download")
+                self.step_done = False
+                self.start_time = time.time()
+                end = start + self.step_size
+                if end > self.total_part:
+                    end = self.total_part
+                self.current_step_size = end - start
+                for i in range(start, end):
+                    self.pool.add_task(self.download_part, i, sessions[i])
+                while True:
+                    if self.step_done or self.stopped:
+                        break
+                    else:
+                        time.sleep(0.2)
+            # logging.debug("Finished part %s-%s", p, p + self.step_size)
+            # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
+            self.pool.wait_completion()
+            self.stopped = True
+            while (not self.write_done):
+                time.sleep(0.1)
+            logging.info("Finished download")
+        finally:
+            for session in sessions:
+                session.close()
 
     def stop(self):
         self.stopped = True
