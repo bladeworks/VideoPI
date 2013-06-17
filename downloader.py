@@ -97,21 +97,20 @@ class Downloader:
                 self.result_queue.put({part_num: ""})
                 return
             try:
-                # resp = requests.get(self.url, headers=headers, allow_redirects=True, timeout=2)
-                # if 200 <= resp.status_code < 300:
-                #     self.result_queue.put({part_num: resp.content})
-                #     break
-                # else:
-                #     logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
-                resp = requests.get(self.url, headers=headers, allow_redirects=True, timeout=2, stream=True)
+                url = self.url
+                if self.alternativeUrls:
+                    url = self.alternativeUrls[(part_num + retries) % (len(self.alternativeUrls))]
+                resp = requests.get(url, headers=headers, allow_redirects=True, timeout=2, stream=True)
                 if 200 <= resp.status_code < 300:
-                    # self.result_queue.put({part_num: resp.content})
                     it = resp.iter_content(500000)
                     content = ""
                     chun_start_time = time.time()
                     timeout = 30
                     while True:
                         if (time.time() - chun_start_time) > timeout:
+                            if len(self.alternativeUrls) > 1:
+                                logging.info("Remove %s as it has been timeout" % url)
+                                self.alternativeUrls.remove(url)
                             raise Exception("Timeout while downloading %s" % part_num)
                         if self.stopped:
                             self.result_queue.put({part_num: ""})

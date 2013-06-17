@@ -429,7 +429,8 @@ class ClubWebParser(WebParser):
         urls = [u.replace('&amp;', '&') for u in (self.getAllElementText(ET.fromstring(responseString), 'nodelist/node'))]
         ranked = BatchRequests(urls).rank()
         videoUrl = ranked[0]
-        alternativeUrls = ranked[1:]
+        alternativeUrls = ranked
+        logging.debug("alternativeUrls = %s", alternativeUrls)
         logging.info('videoUrl = %s', videoUrl)
         duration = self.getElementText(root, 'medias/media/seg/duration')
         with open(playlistStorage, 'w') as f:
