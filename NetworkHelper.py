@@ -57,7 +57,7 @@ class BatchRequests:
     def rank(self):
         if not self.results:
             self.get()
-        ranked = [r.url for r in sorted(self.results, key=lambda result: result.duration) if r.duration < 2]
+        ranked = [r.url for r in sorted(self.results, key=lambda result: result.duration) if r and r.duration < 2]
         logging.info("Ranked = %s" % ranked)
         return ranked
 
