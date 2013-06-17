@@ -21,9 +21,10 @@ class BatchRequests:
         self.urls = urls
         self.header_only = header_only
         self.headers = headers
-        self.results = [None] * len(urls)
+        self.results = []
 
     def get(self):
+        self.results = [None] * len(urls)
         pool = ThreadPool(len(self.urls))
         for idx, url in enumerate(self.urls):
             pool.add_task(self.getOne, url, idx)
