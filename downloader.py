@@ -203,7 +203,7 @@ class Downloader:
                     end = self.total_part
                 self.current_step_size = end - start
                 for i in range(start, end):
-                    self.pool.add_task(self.download_part, i, sessions[i])
+                    self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
                 while True:
                     if self.step_done or self.stopped:
                         break
