@@ -169,6 +169,10 @@ class Downloader:
                     logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
             logging.debug('info = %s', info)
             self.total_length = int(int[info["content-length"]])
+            if resp.history:
+                newUrl = resp.history[-1].headers['location']
+                self.url = newUrl
+                logging.warn("Use the new url %s", newUrl)
         new_length = self.total_length * (1 - self.start_percent)
         self.start_byte = self.total_length - new_length
         self.total_length = new_length
@@ -178,10 +182,6 @@ class Downloader:
         self.file_num = int(self.total_part / self.step_size)
         if self.total_part % self.step_size > 0:
             self.file_num += 1
-        if resp.history:
-            newUrl = resp.history[-1].headers['location']
-            self.url = newUrl
-            logging.warn("Use the new url %s", newUrl)
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
