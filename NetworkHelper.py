@@ -2,6 +2,7 @@
 # -*- coding: utf8 -*-
 
 import requests
+import gevent
 from gevent.pool import Pool
 import time
 import logging
@@ -31,7 +32,7 @@ class BatchRequests:
         jobs = []
         for idx, url in enumerate(self.urls):
             jobs.append(pool.spawn(self.getOne, url, idx))
-        pool.joinall(jobs)
+        gevent.joinall(jobs)
         return self.results
 
     def getOne(self, url, idx):

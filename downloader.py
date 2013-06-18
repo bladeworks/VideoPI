@@ -216,7 +216,7 @@ class Downloader:
                         time.sleep(0.2)
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
-            self.pool.joinall(jobs)
+            gevent.joinall(jobs)
             self.stopped = True
             while (not self.write_done):
                 time.sleep(0.1)
