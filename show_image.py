@@ -43,7 +43,6 @@ class ImgService:
             if what != self.current:
                 logging.debug("Enqueue: %s", img)
                 self.imgQueue.put(img)
-                gevent.sleep()
             else:
                 logging.debug("Same img so no enqueue")
         except:
@@ -52,6 +51,7 @@ class ImgService:
     def _show_thread(self):
         while True:
             img = self.imgQueue.get()
+            gevent.sleep()
             self.current = img.what
             self._clear()
             if img.delay == 0:
