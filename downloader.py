@@ -187,9 +187,9 @@ class Downloader:
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
-        gevent.spawn(self.handleResult).run()
-        gevent.spawn(self.download).run()
-        gevent.spawn(self.writeFile).run()
+        gevent.spawn(self.handleResult)
+        gevent.spawn(self.download)
+        gevent.spawn(self.writeFile)
 
     def download(self):
         # self.pool = ThreadPool(self.process_num)
@@ -267,8 +267,7 @@ class MultiDownloader:
         pass
 
     def start(self):
-        job = gevent.spawn(self.download)
-        job.run()
+        gevent.spawn(self.download)
 
     def download(self):
         for idx, downloader in enumerate(self.downloaders):
