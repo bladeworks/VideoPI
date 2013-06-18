@@ -40,8 +40,6 @@ imgService = ImgService()
 sreenWidth = 0
 sreenHeight = 0
 
-lock = Lock()
-
 import logging
 logging.basicConfig(format='%(asctime)s %(threadName)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
                     filename=logStorage, level=logging.DEBUG)
@@ -106,20 +104,19 @@ def play_list():
         while True:
             if player and player.isalive():
                 time.sleep(1)
-                with lock:
-                    try:
-                        if currentVideo:
-                            position = int(player.position / 1000000)
-                            # logging.debug("Get position = %s", position)
-                            if position > 0 and imgService.stop is False:
-                                imgService.end()
-                            new_progress = int(currentVideo.start_pos) + position
-                            if currentVideo.progress != new_progress:
-                                currentVideo.progress = new_progress
-                                if new_progress % 30 == 0 and new_progress > 0:
-                                    db_writeHistory(currentVideo)
-                    except:
-                        logging.exception("Got exception")
+                try:
+                    if currentVideo:
+                        position = int(player.position / 1000000)
+                        # logging.debug("Get position = %s", position)
+                        if position > 0 and imgService.stop is False:
+                            imgService.end()
+                        new_progress = int(currentVideo.start_pos) + position
+                        if currentVideo.progress != new_progress:
+                            currentVideo.progress = new_progress
+                            if new_progress % 30 == 0 and new_progress > 0:
+                                db_writeHistory(currentVideo)
+                except:
+                    logging.exception("Got exception")
             else:
                 logging.info("Break")
                 if currentVideo.downloader:
@@ -308,13 +305,12 @@ def parse_url(url, format=None, dbid=None, redirectToHome=True):
     parser = websites[current_website]['parser'](url, format)
     parseResult = parser.parse()
     if isinstance(parseResult, Video):
-        with lock:
-            terminatePlayer()
-            currentVideo = parseResult
-            logging.info('currentVideo = %s', str(currentVideo))
-            if dbid:
-                currentVideo.dbid = dbid
-                currentVideo.progress = db_getById(int(dbid)).progress
+        terminatePlayer()
+        currentVideo = parseResult
+        logging.info('currentVideo = %s', str(currentVideo))
+        if dbid:
+            currentVideo.dbid = dbid
+            currentVideo.progress = db_getById(int(dbid)).progress
         return play_url(redirectToHome)
     else:
         logging.info('No video found, return the web page.')
