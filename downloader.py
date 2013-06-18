@@ -10,9 +10,9 @@ from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
 from Helper import ThreadPool
-from config import process_num as process_num_config, chunk_size as chunk_size_config
+from config import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 try:
-    from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config
+    from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
 
@@ -79,9 +79,8 @@ class Downloader:
                     it = resp.iter_content(500000)
                     content = ""
                     chun_start_time = time.time()
-                    timeout = 30
                     while True:
-                        if (time.time() - chun_start_time) > timeout:
+                        if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
                                 logging.info("Remove %s as it has been timeout" % url)
                                 self.alternativeUrls.remove(url)
