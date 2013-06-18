@@ -5,9 +5,11 @@ import requests
 import logging
 import time
 import signal
-from gevent.queue import Queue
+from threading import Thread
+from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
+from Helper import ThreadPool
 from config import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 try:
     from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
@@ -16,6 +18,8 @@ except:
 
 import gevent
 from gevent.pool import Pool
+from gevent import monkey
+monkey.patch_all()
 
 
 @contextmanager
@@ -51,8 +55,11 @@ class Downloader:
         self.start_percent = start_percent
         self.start_byte = 0
         self.getSizeInfo()
+        self.result_thread = Thread(target=self.handleResult)
+        self.download_thread = Thread(target=self.download)
         self.start_time = 0
         self.write_queue = Queue(1)
+        self.write_thread = Thread(target=self.writeFile)
 
     def download_part(self, part_num, session):
         # Content-Range: bytes 0-499/1234
@@ -187,9 +194,9 @@ class Downloader:
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
-        gevent.spawn(self.handleResult)
-        gevent.spawn(self.download)
-        gevent.spawn(self.writeFile)
+        self.result_thread.start()
+        self.download_thread.start()
+        self.write_thread.start()
 
     def download(self):
         # self.pool = ThreadPool(self.process_num)
@@ -244,6 +251,7 @@ class MultiDownloader:
         self.downloaders = []
         self.currentDownloader = None
         self.stopped = False
+        self.download_thread = Thread(target=self.download)
         self.outfile = outfile
         file_seq = 0
         logging.info("process_num = %s, chunk_size = %s, step_size = %s", self.process_num, self.chunk_size, self.step_size)
@@ -267,7 +275,7 @@ class MultiDownloader:
         pass
 
     def start(self):
-        gevent.spawn(self.download)
+        self.download_thread.start()
 
     def download(self):
         for idx, downloader in enumerate(self.downloaders):

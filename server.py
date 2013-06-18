@@ -10,7 +10,8 @@ import time
 import urllib
 import urllib2
 from urlparse import urlparse
-from gevent.queue import Queue
+from threading import Thread, Lock
+from Queue import Queue
 from Constants import *
 from pyomxplayer import OMXPlayer
 from show_image import *
@@ -22,10 +23,6 @@ try:
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
 import bottle
-
-from gevent import monkey
-monkey.patch_all()
-import gevent
 
 bottle.debug = True
 
@@ -142,7 +139,8 @@ def new_play_thread():
     global playThread
     if not playThread or (not playThread.isAlive()):
         logging.debug("New a thred to play the list.")
-        gevent.spawn(play_list)
+        playThread = Thread(target=play_list)
+        playThread.start()
 
 
 def getWgetCmd(url, output="-"):

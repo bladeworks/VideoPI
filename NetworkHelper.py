@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 import requests
-from gevent.pool import Pool
+from Helper import ThreadPool
 import time
 import logging
 
@@ -27,11 +27,10 @@ class BatchRequests:
 
     def get(self):
         self.results = [None] * len(self.urls)
-        pool = Pool(5)
-        jobs = []
+        pool = ThreadPool(5)
         for idx, url in enumerate(self.urls):
-            jobs.append(pool.spawn(self.getOne, url, idx))
-        pool.joinall(jobs)
+            pool.add_task(self.getOne, url, idx)
+        pool.wait_completion()
         return self.results
 
     def getOne(self, url, idx):
