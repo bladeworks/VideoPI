@@ -58,7 +58,6 @@ class ImgService:
                 self._show_image(img)
             while (img.delay > 0) and (not self.stop):
                 self._show_image(img)
-                gevent.sleep()
 
     def _show_image(self, img):
         for filename in img.filenames:
