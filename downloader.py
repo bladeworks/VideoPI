@@ -10,6 +10,11 @@ from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
 from Helper import ThreadPool
+from config import process_num as process_num_config, chunk_size as chunk_size_config
+try:
+    from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config
+except:
+    logging.info("No userPrefs.py found so skip user configuration.")
 
 
 @contextmanager
@@ -26,7 +31,7 @@ def runWithTimeout(timeout=1):
 
 class Downloader:
 
-    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=10, start_percent=0,
+    def __init__(self, url, process_num=5, chunk_size=1000000, step_size=5, start_percent=0,
                  outfile=None, file_seq=0, alternativeUrls=[], total_length=None):
         self.url = url
         self.total_length = total_length
@@ -230,11 +235,11 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, process_num=5, chunk_size=2000000, step_size=5, start_percent=0, outfile=None, alternativeUrls=[]):
+    def __init__(self, urls, start_percent=0, outfile=None, alternativeUrls=[]):
         self.urls = urls
-        self.process_num = process_num
-        self.chunk_size = chunk_size
-        self.step_size = step_size
+        self.process_num = process_num_config
+        self.chunk_size = chunk_size_config
+        self.step_size = process_num_config
         self.catCmds = []
         self.downloaders = []
         self.currentDownloader = None

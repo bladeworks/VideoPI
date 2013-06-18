@@ -36,3 +36,7 @@ download_program = "wget"
 
 # download thread for axel
 download_threads = 5
+
+# download options for private
+process_num = 10
+chunk_size = 10000000
