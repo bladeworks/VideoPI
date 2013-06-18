@@ -16,11 +16,6 @@ try:
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
 
-import gevent
-from gevent.pool import Pool
-from gevent import monkey
-monkey.patch_all()
-
 
 @contextmanager
 def runWithTimeout(timeout=1):
@@ -199,10 +194,8 @@ class Downloader:
         self.write_thread.start()
 
     def download(self):
-        # self.pool = ThreadPool(self.process_num)
+        self.pool = ThreadPool(self.process_num)
         try:
-            self.pool = Pool(self.process_num)
-            jobs = []
             sessions = [requests.Session()] * self.step_size
             for start in range(0, self.total_part, self.step_size):
                 if self.stopped:
@@ -214,8 +207,7 @@ class Downloader:
                     end = self.total_part
                 self.current_step_size = end - start
                 for i in range(start, end):
-                    jobs.append(self.pool.spawn(self.download_part, i, sessions[i % self.step_size]))
-                    # self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
+                    self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
                 while True:
                     if self.step_done or self.stopped:
                         break
@@ -223,7 +215,7 @@ class Downloader:
                         time.sleep(0.2)
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
-            self.pool.joinall(jobs)
+            self.pool.wait_completion()
             self.stopped = True
             while (not self.write_done):
                 time.sleep(0.1)
