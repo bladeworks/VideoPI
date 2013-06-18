@@ -252,11 +252,11 @@ class MultiDownloader:
             url = res.url
             total_length = int(res.resp.headers["content-length"])
             if idx == 0:
-                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
+                downloader = Downloader(url, self.process_num, self.chunk_size, self.step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             else:
-                downloader = Downloader(url, process_num, chunk_size, step_size,
+                downloader = Downloader(url, self.process_num, self.chunk_size, self.step_size,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             file_seq += downloader.file_num
