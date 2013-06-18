@@ -17,12 +17,13 @@ class Result:
 
 class BatchRequests:
 
-    def __init__(self, urls, header_only=True, headers={'User-Agent': 'Mozilla/5.0'}, replace_url=True):
+    def __init__(self, urls, header_only=True, headers={'User-Agent': 'Mozilla/5.0'}, replace_url=True, retry=1):
         self.urls = urls
         self.header_only = header_only
         self.headers = headers
         self.results = []
         self.replace_url = replace_url
+        self.retry = retry
 
     def get(self):
         self.results = [None] * len(self.urls)
@@ -36,13 +37,16 @@ class BatchRequests:
         logging.info("Get %s", url)
         start_time = time.time()
         resp = None
-        try:
-            if self.header_only:
-                resp = requests.head(url, headers=self.headers, allow_redirects=True, timeout=2)
-            else:
-                resp = requests.get(url, headers=self.headers, allow_redirects=True, timeout=2)
-        except Exception:
-            logging.exception("Got exception")
+        for r in range(self.retry):
+            try:
+                if self.header_only:
+                    resp = requests.head(url, headers=self.headers, allow_redirects=True, timeout=2)
+                else:
+                    resp = requests.get(url, headers=self.headers, allow_redirects=True, timeout=2)
+                break
+            except Exception:
+                logging.exception("Got exception")
+                logging.debug("Retry %s", r)
         if resp and resp.history and self.replace_url:
             url = resp.history[-1].headers['location']
         duration = time.time() - start_time

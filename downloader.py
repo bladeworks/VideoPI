@@ -247,7 +247,7 @@ class MultiDownloader:
         self.outfile = outfile
         file_seq = 0
         logging.info("process_num = %s, chunk_size = %s, step_size = %s", self.process_num, self.chunk_size, self.step_size)
-        ress = BatchRequests(self.urls, replace_url=False).get()
+        ress = BatchRequests(self.urls, replace_url=False, retry=10).get()
         for idx, res in enumerate(ress):
             url = res.url
             total_length = int(res.resp.headers["content-length"])
