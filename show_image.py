@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import gevent
+from threading import Thread
 import time
 import subprocess
 import logging
@@ -29,7 +29,8 @@ class ImgService:
         self.stop = False
         self.imgQueue = Queue()
         self.current = None
-        gevent.spawn(self._show_thread).run()
+        thread = Thread(target=self._show_thread)
+        thread.start()
 
     def begin(self, what):
         try:
