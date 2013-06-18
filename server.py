@@ -139,7 +139,7 @@ def new_play_thread():
     global playThread
     if not playThread or (not playThread.isAlive()):
         logging.debug("New a thred to play the list.")
-        gevent.spawn(play_list).start()
+        gevent.spawn(play_list)
 
 
 def getWgetCmd(url, output="-"):

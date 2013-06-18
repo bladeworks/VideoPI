@@ -5,7 +5,7 @@ import gevent
 import time
 import subprocess
 import logging
-from Queue import Queue
+from gevent.queue import Queue
 
 LOADING = "loading"
 FINISHED = "finished"
@@ -29,7 +29,7 @@ class ImgService:
         self.stop = False
         self.imgQueue = Queue()
         self.current = None
-        gevent.spawn(self._show_thread).start()
+        gevent.spawn(self._show_thread)
 
     def begin(self, what):
         try:
@@ -51,6 +51,7 @@ class ImgService:
     def _show_thread(self):
         while True:
             img = self.imgQueue.get()
+            gevent.sleep()
             self.current = img.what
             self._clear()
             if img.delay == 0:
