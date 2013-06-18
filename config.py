@@ -38,6 +38,6 @@ download_program = "wget"
 download_threads = 5
 
 # download options for private
-process_num = 10
-chunk_size = 10000000
-download_timeout = 30
+process_num = 5
+chunk_size = 2000000
+download_timeout = 60
