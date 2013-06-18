@@ -51,15 +51,14 @@ class ImgService:
 
     def _show_thread(self):
         while True:
-            gevent.sleep()
             img = self.imgQueue.get()
             self.current = img.what
             self._clear()
             if img.delay == 0:
                 self._show_image(img)
             while (img.delay > 0) and (not self.stop):
-                gevent.sleep()
                 self._show_image(img)
+                gevent.sleep()
 
     def _show_image(self, img):
         for filename in img.filenames:
