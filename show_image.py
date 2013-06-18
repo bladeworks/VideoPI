@@ -29,7 +29,7 @@ class ImgService:
         self.stop = False
         self.imgQueue = Queue()
         self.current = None
-        gevent.spawn(self._show_thread).run()
+        gevent.spawn(self._show_thread).start()
 
     def begin(self, what):
         try:
