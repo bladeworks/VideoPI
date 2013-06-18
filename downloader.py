@@ -267,7 +267,8 @@ class MultiDownloader:
         pass
 
     def start(self):
-        gevent.spawn(self.download).start()
+        job = gevent.spawn(self.download)
+        job.run()
 
     def download(self):
         for idx, downloader in enumerate(self.downloaders):
