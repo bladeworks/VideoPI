@@ -17,11 +17,12 @@ class Result:
 
 class BatchRequests:
 
-    def __init__(self, urls, header_only=True, headers={'User-Agent': 'Mozilla/5.0'}):
+    def __init__(self, urls, header_only=True, headers={'User-Agent': 'Mozilla/5.0'}, replace_url=True):
         self.urls = urls
         self.header_only = header_only
         self.headers = headers
         self.results = []
+        self.replace_url = replace_url
 
     def get(self):
         self.results = [None] * len(self.urls)
@@ -42,7 +43,7 @@ class BatchRequests:
                 resp = requests.get(url, headers=self.headers, allow_redirects=True, timeout=2)
         except Exception:
             logging.exception("Got exception")
-        if resp and resp.history:
+        if resp and resp.history and self.replace_url:
             url = resp.history[-1].headers['location']
         duration = time.time() - start_time
         logging.info("It takes %s to get %s.", duration, url)

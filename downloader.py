@@ -169,10 +169,10 @@ class Downloader:
                     logging.info("The status_code is %s, retry %s", resp.status_code, (i + 1))
             logging.debug('info = %s', info)
             self.total_length = int(int[info["content-length"]])
-            if resp.history:
-                newUrl = resp.history[-1].headers['location']
-                self.url = newUrl
-                logging.warn("Use the new url %s", newUrl)
+            # if resp.history:
+            #     newUrl = resp.history[-1].headers['location']
+            #     self.url = newUrl
+            #     logging.warn("Use the new url %s", newUrl)
         new_length = self.total_length * (1 - self.start_percent)
         self.start_byte = self.total_length - new_length
         self.total_length = new_length
@@ -242,7 +242,7 @@ class MultiDownloader:
         self.download_thread = Thread(target=self.download)
         self.outfile = outfile
         file_seq = 0
-        ress = BatchRequests(self.urls).get()
+        ress = BatchRequests(self.urls, replace_url=False).get()
         for idx, res in enumerate(ress):
             url = res.url
             total_length = int(res.resp.headers["content-length"])
