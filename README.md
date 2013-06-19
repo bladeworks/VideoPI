@@ -80,7 +80,7 @@ VideoPI是基于bottlepy以及jquerymobile的一个RB的遥控器，可以在电
   cd pip-1.3.1
   python setup.py install
   pip install bottle
-  pip install pexpect
+  pip install requests
   ```
   
 * 如果要看Youtube，还需要youtube-dl（root用户）。
