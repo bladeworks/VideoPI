@@ -3,10 +3,10 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link href="http://code.jquery.com/mobile/latest/jquery.mobile.css" rel="stylesheet" type="text/css" />
 		<link href="/static/css/videopi.css" rel="stylesheet" type="text/css" />
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.css" />
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
--		<script src="http://code.jquery.com/mobile/latest/jquery.mobile.js"></script>
+		<script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
 		<meta charset=utf-8 />
 		<title>Raspberry Remote Control</title>
 	</head>
