@@ -212,7 +212,7 @@ class Downloader:
                 self.current_step_size = end - start
                 jobs = []
                 for i in range(start, end):
-                    jobs.append(gevent.spawn(self.download_part, i, sessions[i % self.step_size]))
+                    jobs.append(gevent.spawn(self.download_part, i, session[i % self.step_size]))
                     # self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
                 gevent.joinall(jobs)
                 while True:
