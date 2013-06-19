@@ -9,12 +9,12 @@ from threading import Thread
 from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
-from Helper import ThreadPool
 from config import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 try:
     from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
+from greenlet import greenlet
 
 
 @contextmanager
@@ -80,6 +80,7 @@ class Downloader:
                     content = ""
                     chun_start_time = time.time()
                     while True:
+                        greenlet.get_current().parent.switch()
                         if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
                                 logging.info("Remove %s as it has been timeout" % url)
@@ -108,6 +109,7 @@ class Downloader:
             self.stopped = True
             raise Exception("Failed to download part %s" % part_num)
         logging.debug("Completed download part %s", part_num)
+        greenlet.get_current().parent.switch()
 
     def handleResult(self):
         result = {}
@@ -194,7 +196,6 @@ class Downloader:
         self.write_thread.start()
 
     def download(self):
-        self.pool = ThreadPool(self.process_num)
         try:
             sessions = [requests.Session()] * self.step_size
             for start in range(0, self.total_part, self.step_size):
@@ -206,16 +207,20 @@ class Downloader:
                 if end > self.total_part:
                     end = self.total_part
                 self.current_step_size = end - start
+                grs = []
                 for i in range(start, end):
-                    self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
+                    grs.append([greenlet(self.download_part), i, sessions[i % self.step_size]])
+                    # self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
                 while True:
-                    if self.step_done or self.stopped:
+                    time.sleep(0.1)
+                    grs[:] = [gr for gr in grs if not gr[0].dead]
+                    if not grs:
                         break
-                    else:
-                        time.sleep(0.2)
+                    for gr in grs:
+                        gr[0].switch(gr[1], gr[2])
+
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
-            self.pool.wait_completion()
             self.stopped = True
             while (not self.write_done):
                 time.sleep(0.1)
