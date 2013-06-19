@@ -43,6 +43,7 @@ class OMXPlayer(object):
         self.position = 0
         self._position_thread = Thread(target=self._get_position)
         self._position_thread.start()
+        logging.debug("Try to start downloader if any.")
         if self.currentVideo.downloader:
             self.currentVideo.downloader.start()
 
