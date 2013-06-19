@@ -196,7 +196,7 @@ class Downloader:
     def download(self):
         self.pool = ThreadPool(self.process_num)
         try:
-            sessions = [requests.Session()] * self.step_size
+            session = requests.Session()
             for start in range(0, self.total_part, self.step_size):
                 if self.stopped:
                     break
@@ -207,7 +207,7 @@ class Downloader:
                     end = self.total_part
                 self.current_step_size = end - start
                 for i in range(start, end):
-                    self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
+                    self.pool.add_task(self.download_part, i, session)
                 while True:
                     if self.step_done or self.stopped:
                         break
