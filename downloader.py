@@ -211,9 +211,11 @@ class Downloader:
                     end = self.total_part
                 self.current_step_size = end - start
                 jobs = []
+                logging.debug("Add jobs")
                 for i in range(start, end):
                     jobs.append(gevent.spawn(self.download_part, i, sessions[i % self.step_size]))
                     # self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
+                logging.debug("Waiting jobs done")
                 gevent.joinall(jobs)
                 while True:
                     if self.step_done or self.stopped:
