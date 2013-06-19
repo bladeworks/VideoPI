@@ -256,9 +256,9 @@ class WebParser:
 
     def requestGet(self, url, headers, via_proxy):
         if via_proxy:
-            resp = this.session.get(url, headers=headers, proxies=proxies)
+            resp = self.session.get(url, headers=headers, proxies=proxies)
         else:
-            resp = this.session.get(url, headers=headers)
+            resp = self.session.get(url, headers=headers)
         return resp
 
     def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
