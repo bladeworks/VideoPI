@@ -14,7 +14,7 @@ try:
     from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
-import gevent
+from greenlet import greenlet
 
 
 @contextmanager
@@ -79,7 +79,6 @@ class Downloader:
                     it = resp.iter_content(500000)
                     content = ""
                     chun_start_time = time.time()
-                    gevent.sleep()
                     while True:
                         if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
@@ -97,7 +96,8 @@ class Downloader:
                             break
                         if next:
                             content += next
-                        gevent.sleep()
+                        logging.debug("Switch to the parent")
+                        greenlet.getcurrent().parent.switch()
                     self.result_queue.put({part_num: content})
                     break
                 else:
@@ -112,6 +112,8 @@ class Downloader:
             self.stopped = True
             raise Exception("Failed to download part %s" % part_num)
         logging.debug("Completed download part %s", part_num)
+        logging.debug("Switch to the parent")
+        greenlet.getcurrent().parent.switch()
 
     def handleResult(self):
         result = {}
@@ -209,15 +211,18 @@ class Downloader:
                 if end > self.total_part:
                     end = self.total_part
                 self.current_step_size = end - start
-                jobs = []
+                grs = []
                 for i in range(start, end):
-                    jobs.append(gevent.spawn(self.download_part, i, self.step_size))
+                    grs.append([greenlet(self.download_part), i, sessions[i % self.step_size]])
                     # self.pool.add_task(self.download_part, i, sessions[i % self.step_size])
-                gevent.joinall(jobs)
-                # while True:
-                #     if self.step_done or self.stopped:
-                #         break
-                #     time.sleep(0.1)
+                while True:
+                    time.sleep(0.1)
+                    grs[:] = [gr for gr in grs if not gr[0].dead]
+                    if not grs:
+                        break
+                    for gr in grs:
+                        logging.debug("Switch to %s", gr[1])
+                        gr[0].switch(gr[1], gr[2])
 
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
