@@ -80,6 +80,8 @@ class Downloader:
                     content = ""
                     chun_start_time = time.time()
                     while True:
+                        logging.debug("Switch to the parent")
+                        greenlet.getcurrent().parent.switch()
                         if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
                                 logging.info("Remove %s as it has been timeout" % url)
@@ -96,8 +98,6 @@ class Downloader:
                             break
                         if next:
                             content += next
-                        logging.debug("Switch to the parent")
-                        greenlet.getcurrent().parent.switch()
                     self.result_queue.put({part_num: content})
                     break
                 else:
