@@ -80,6 +80,7 @@ class Downloader:
                     content = ""
                     chun_start_time = time.time()
                     while True:
+                        logging.debug("Switch to the parent")
                         greenlet.getcurrent().parent.switch()
                         if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
@@ -90,7 +91,9 @@ class Downloader:
                             self.result_queue.put({part_num: ""})
                             return
                         try:
+                            logging.debug("%s: get next", part_num)
                             next = it.next()
+                            logging.debug("%s: get next done", part_num)
                         except StopIteration:
                             break
                         if next:
@@ -109,6 +112,7 @@ class Downloader:
             self.stopped = True
             raise Exception("Failed to download part %s" % part_num)
         logging.debug("Completed download part %s", part_num)
+        logging.debug("Switch to the parent")
         greenlet.getcurrent().parent.switch()
 
     def handleResult(self):
@@ -217,6 +221,7 @@ class Downloader:
                     if not grs:
                         break
                     for gr in grs:
+                        logging.debug("Switch to %s", gr[1])
                         gr[0].switch(gr[1], gr[2])
 
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
