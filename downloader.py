@@ -193,6 +193,7 @@ class Downloader:
         logging.info("total_length = %s", self.total_length)
 
     def start(self):
+        logging.debug("Start the downloading")
         self.result_thread.start()
         self.download_thread.start()
         self.write_thread.start()
