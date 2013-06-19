@@ -160,6 +160,7 @@ class WebParser:
         if format:
             self.format = int(format)
         self.availableFormat = []
+        self.session = requests.Session()
         self.additionalJS = """
         <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
         <script>
@@ -255,9 +256,9 @@ class WebParser:
 
     def requestGet(self, url, headers, via_proxy):
         if via_proxy:
-            resp = requests.get(url, headers=headers, proxies=proxies)
+            resp = this.session.get(url, headers=headers, proxies=proxies)
         else:
-            resp = requests.get(url, headers=headers)
+            resp = this.session.get(url, headers=headers)
         return resp
 
     def fetchWeb(self, url, via_proxy=False, download_program=None, ua='Mozilla/5.0'):
