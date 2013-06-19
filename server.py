@@ -191,20 +191,23 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             if multiDownloader.outfile != currentVideo.playUrl:
                 download_args += '%s > %s 2>/tmp/cat.log' % (multiDownloader.getCatCmds()[0], currentVideo.playUrl)
         else:
-            multiDownloader = MultiDownloader(sections[start_idx:], alternativeUrls=currentVideo.alternativeUrls)
-            catCmds = multiDownloader.getCatCmds()
-            ffmpeg_part = "/tmp/ffmpeg_part"
-            currentVideo.downloader = multiDownloader
-            p_list = []
-            for idx, catCmd in enumerate(catCmds):
-                pname = os.path.join(ffmpeg_part, str(idx))
-                newFifo(pname)
-                download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", pname)))
-                p_list.append(pname)
-            ffmpeg_input = " ".join(p_list)
-            download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                             % (ffmpeg_input, delta, currentVideo.playUrl)
-            download_args += " && ".join(download_lines)
+            if len(sections[start_idx:]) == 1 and delta >0:
+                download_args = getFfmpegCmd(delta, sections[start_idx:][0], currentVideo.playUrl)
+            else:
+                multiDownloader = MultiDownloader(sections[start_idx:], alternativeUrls=currentVideo.alternativeUrls)
+                catCmds = multiDownloader.getCatCmds()
+                ffmpeg_part = "/tmp/ffmpeg_part"
+                currentVideo.downloader = multiDownloader
+                p_list = []
+                for idx, catCmd in enumerate(catCmds):
+                    pname = os.path.join(ffmpeg_part, str(idx))
+                    newFifo(pname)
+                    download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", pname)))
+                    p_list.append(pname)
+                ffmpeg_input = " ".join(p_list)
+                download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                                 % (ffmpeg_input, delta, currentVideo.playUrl)
+                download_args += " && ".join(download_lines)
     else:
         if len(sections[start_idx:]) == 1:
             dp = "wget"
