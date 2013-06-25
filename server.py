@@ -191,7 +191,7 @@ def merge_play(sections, where=0, start_idx=0, delta=0):
             if multiDownloader.outfile != currentVideo.playUrl:
                 download_args += '%s > %s 2>/tmp/cat.log' % (multiDownloader.getCatCmds()[0], currentVideo.playUrl)
         else:
-            if len(sections[start_idx:]) == 1 and delta >0:
+            if len(sections[start_idx:]) == 1 and delta > 0:
                 ffmpeg_part = "/tmp/ffmpeg_part/0"
                 download_args = 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' %\
                                 (ffmpeg_part, 30, currentVideo.playUrl)
