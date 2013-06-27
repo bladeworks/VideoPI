@@ -84,9 +84,11 @@ class Downloader:
                             if len(self.alternativeUrls) > 1:
                                 logging.info("Remove %s as it has been timeout" % url)
                                 self.alternativeUrls.remove(url)
+                            it.close()
                             raise Exception("Timeout while downloading %s" % part_num)
                         if self.stopped:
                             self.result_queue.put({part_num: ""})
+                            it.close()
                             return
                         try:
                             next = it.next()
@@ -132,6 +134,7 @@ class Downloader:
     def writeFile(self):
         while True:
             result = self.write_queue.get()
+            logging.info("Get %s", len(result))
             if result:
                 if self.outfile:
                     filename = self.outfile
@@ -212,7 +215,7 @@ class Downloader:
                     if self.step_done or self.stopped:
                         break
                     else:
-                        time.sleep(0.2)
+                        time.sleep(0.1)
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
             self.pool.wait_completion()
@@ -318,8 +321,8 @@ class MultiDownloader:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    downloader = MultiDownloader(['http://newflv.sohu.ccgslb.net/94/130/YQiLpZSCjlSzIYYZ6a4c56.mp4?key=HKkxI_EWG6euKNlJTi0w53bxNWX_-j4e'])
+    downloader = MultiDownloader(['http://newflv.sohu.ccgslb.net/17/198/DUZhTZJjqW9YNoZXGgksU4.mp4?key=qIchGoS9DHw46ZS0A53Gt3192YHEbcpA'])
     downloader.start()
-    time.sleep(25)
+    time.sleep(5)
     downloader.stop()
     downloader.getCatCmds()
