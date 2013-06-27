@@ -94,6 +94,7 @@ class Downloader:
                         try:
                             next = it.next()
                             if last_time_get_data and (time.time() - last_time_get_data) > 2:
+                                it.close()
                                 raise Exception("Didn't get data more than 2 seconds")
                             last_time_get_data = time.time()
                         except StopIteration:
