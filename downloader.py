@@ -252,15 +252,19 @@ class MultiDownloader:
             total_length = int(res.resp.headers["content-length"])
             logging.info(res.resp.headers)
             process_num = self.process_num
+            chunk_size = self.chunk_size
+            step_size = self.step_size
             if not res.range_support:
                 logging.warn("Range request not supported so set process_num to 1.")
                 process_num = 1
+                chunk_size = total_length
+                step_size = 1
             if idx == 0:
-                downloader = Downloader(url, process_num, self.chunk_size, self.step_size, start_percent,
+                downloader = Downloader(url, process_num, chunk_size, step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             else:
-                downloader = Downloader(url, process_num, self.chunk_size, self.step_size,
+                downloader = Downloader(url, process_num, chunk_size, step_size,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             file_seq += downloader.file_num
