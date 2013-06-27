@@ -39,7 +39,7 @@ class BatchRequests:
         start_time = time.time()
         resp = None
         if not 'Range' in self.headers:
-            self.headers["Range"] = "bytes=0-1000"
+            self.headers["Range"] = "bytes=0-1000000000000"
         range_support = False
         for r in range(self.retry):
             try:
