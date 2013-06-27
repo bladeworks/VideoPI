@@ -235,11 +235,6 @@ class Downloader:
 
     def stop(self):
         self.stopped = True
-        while True:
-            if self.write_done:
-                break
-            else:
-                time.sleep(0.01)
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
