@@ -250,6 +250,7 @@ class MultiDownloader:
         for idx, res in enumerate(ress):
             url = res.url
             total_length = int(res.resp.headers["content-length"])
+            logging.info(res.resp.headers)
             if idx == 0:
                 downloader = Downloader(url, self.process_num, self.chunk_size, self.step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
