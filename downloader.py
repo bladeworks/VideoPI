@@ -9,12 +9,12 @@ from threading import Thread
 from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
-from Helper import ThreadPool
 from config import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 try:
     from userPrefs import process_num as process_num_config, chunk_size as chunk_size_config, download_timeout
 except:
     logging.info("No userPrefs.py found so skip user configuration.")
+from collections import deque
 
 
 @contextmanager
@@ -27,6 +27,23 @@ def runWithTimeout(timeout=1):
         yield
     finally:
         signal.alarm(0)
+
+
+class TaskScheduler:
+    def __init__(self):
+        self._task_queue = deque()
+
+    def new_task(self, task):
+        self._task_queue.append(task)
+
+    def run(self):
+        while self._task_queue:
+            task = self._task_queue.popleft()
+            try:
+                next(task)
+                self._task_queue.append(task)
+            except StopIteration:
+                pass
 
 
 class Downloader:
@@ -76,7 +93,8 @@ class Downloader:
                     url = self.alternativeUrls[(part_num + retries) % (len(self.alternativeUrls))]
                 resp = session.get(url, headers=headers, allow_redirects=True, timeout=2, stream=True)
                 if 200 <= resp.status_code < 300:
-                    it = resp.iter_content(500000)
+                    yield
+                    it = resp.iter_content(100000)
                     content = ""
                     chun_start_time = time.time()
                     while True:
@@ -89,6 +107,7 @@ class Downloader:
                             self.result_queue.put({part_num: ""})
                             return
                         try:
+                            yield
                             next = it.next()
                         except StopIteration:
                             break
@@ -194,10 +213,10 @@ class Downloader:
         self.write_thread.start()
 
     def download(self):
-        self.pool = ThreadPool(self.process_num)
         try:
             session = requests.Session()
             for start in range(0, self.total_part, self.step_size):
+                self.sched = TaskScheduler()
                 if self.stopped:
                     break
                 self.step_done = False
@@ -207,15 +226,16 @@ class Downloader:
                     end = self.total_part
                 self.current_step_size = end - start
                 for i in range(start, end):
-                    self.pool.add_task(self.download_part, i, session)
+                    self.sched.new_task(self.download_part(i, session))
+                step_start_time = time.time()
+                self.sched.run()
                 while True:
                     if self.step_done or self.stopped:
                         break
                     else:
-                        time.sleep(0.2)
+                        time.sleep(0.1)
             # logging.debug("Finished part %s-%s", p, p + self.step_size)
             # logging.info("The avg speed is %s" self.computeSpeed(self.chunk_size * self.step_size, end_time - start_time))
-            self.pool.wait_completion()
             self.stopped = True
             while (not self.write_done):
                 time.sleep(0.1)
@@ -311,6 +331,6 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
     downloader = MultiDownloader(['http://220.181.155.130/10/19/103/2101638103.0.flv?crypt=58785b5eaa7f2e540&b=1782&gn=820&nc=6&bf=24&p2p=1&video_type=flv&check=0&tm=1371522600&key=013f54127478b083e01859e0c0b77f77&opck=0&lgn=letv&proxy=3702889409&cipi=3702878110&geo=CN-1-0-1&tsnp=1&mmsid=1638103&platid=8&splatid=800&playid=0&tss=no&tag=box'])
     downloader.start()
-    time.sleep(25)
+    time.sleep(45)
     downloader.stop()
     downloader.getCatCmds()
