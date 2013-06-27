@@ -251,12 +251,16 @@ class MultiDownloader:
             url = res.url
             total_length = int(res.resp.headers["content-length"])
             logging.info(res.resp.headers)
+            process_num = self.process_num
+            if not res.range_support:
+                logging.warn("Range request not supported so set process_num to 1.")
+                process_num = 1
             if idx == 0:
-                downloader = Downloader(url, self.process_num, self.chunk_size, self.step_size, start_percent,
+                downloader = Downloader(url, process_num, self.chunk_size, self.step_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             else:
-                downloader = Downloader(url, self.process_num, self.chunk_size, self.step_size,
+                downloader = Downloader(url, process_num, self.chunk_size, self.step_size,
                                         outfile=self.outfile, file_seq=file_seq,
                                         alternativeUrls=alternativeUrls, total_length=total_length)
             file_seq += downloader.file_num
@@ -310,7 +314,7 @@ class MultiDownloader:
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(module)s:%(lineno)d %(levelname)s: %(message)s', level=logging.DEBUG)
-    downloader = MultiDownloader(['http://220.181.155.130/10/19/103/2101638103.0.flv?crypt=58785b5eaa7f2e540&b=1782&gn=820&nc=6&bf=24&p2p=1&video_type=flv&check=0&tm=1371522600&key=013f54127478b083e01859e0c0b77f77&opck=0&lgn=letv&proxy=3702889409&cipi=3702878110&geo=CN-1-0-1&tsnp=1&mmsid=1638103&platid=8&splatid=800&playid=0&tss=no&tag=box'])
+    downloader = MultiDownloader(['http://newflv.sohu.ccgslb.net/94/130/YQiLpZSCjlSzIYYZ6a4c56.mp4?key=HKkxI_EWG6euKNlJTi0w53bxNWX_-j4e'])
     downloader.start()
     time.sleep(25)
     downloader.stop()

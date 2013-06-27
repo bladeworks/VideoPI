@@ -428,7 +428,7 @@ class ClubWebParser(WebParser):
                 break
         responseString = self.fetchWeb(step2url, ua=self.ua)
         urls = [u.replace('&amp;', '&') for u in (self.getAllElementText(ET.fromstring(responseString), 'nodelist/node'))]
-        ranked = BatchRequests(urls, header_only=False, headers={"User-Agent": "Mozilla/5.0", "Range": "bytes=0-100000"}).rank()
+        ranked = BatchRequests(urls, header_only=False, headers={"User-Agent": "Mozilla/5.0", "Range": "bytes=0-1000"}).rank()
         videoUrl = ranked[0]
         alternativeUrls = ranked
         logging.debug("alternativeUrls = %s", alternativeUrls)

@@ -9,10 +9,11 @@ import logging
 
 class Result:
 
-    def __init__(self, url, resp, duration):
+    def __init__(self, url, resp, duration, range_support=True):
         self.url = url
         self.resp = resp
         self.duration = duration
+        self.range_support = range_support
 
 
 class BatchRequests:
@@ -37,12 +38,17 @@ class BatchRequests:
         logging.info("Get %s", url)
         start_time = time.time()
         resp = None
+        if not 'Range' in self.headers:
+            self.headers["Range"] = "bytes=0-1000"
+        range_support = False
         for r in range(self.retry):
             try:
                 if self.header_only:
                     resp = requests.head(url, headers=self.headers, allow_redirects=True, timeout=2)
                 else:
                     resp = requests.get(url, headers=self.headers, allow_redirects=True, timeout=2)
+                if resp.status_code == 206:
+                    range_support = True
                 break
             except Exception:
                 logging.exception("Got exception")
@@ -51,7 +57,7 @@ class BatchRequests:
             url = resp.history[-1].headers['location']
         duration = time.time() - start_time
         logging.info("It takes %s to get %s.", duration, url)
-        self.results[idx] = Result(url, resp, duration)
+        self.results[idx] = Result(url, resp, duration, range_support)
 
     def findFastest(self):
         if not self.results:
