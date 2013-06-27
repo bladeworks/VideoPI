@@ -79,6 +79,7 @@ class Downloader:
                     it = resp.iter_content(10000)
                     content = ""
                     chun_start_time = time.time()
+                    last_time_get_data = time.time()
                     while True:
                         if (time.time() - chun_start_time) > download_timeout:
                             if len(self.alternativeUrls) > 1:
@@ -92,6 +93,9 @@ class Downloader:
                             return
                         try:
                             next = it.next()
+                            if last_time_get_data and (time.time() - last_time_get_data) > 2:
+                                raise Exception("Didn't get data more than 2 seconds")
+                            last_time_get_data = time.time()
                         except StopIteration:
                             break
                         if next:
