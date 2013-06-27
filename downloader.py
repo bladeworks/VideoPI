@@ -117,6 +117,7 @@ class Downloader:
             r = self.result_queue.get()
             if self.stopped:
                 self.write_queue.put("")
+                result = None
                 return
             result.update(r)
             if len(result) == self.current_step_size:
@@ -146,11 +147,13 @@ class Downloader:
                         f.write(result)
                 except:
                     logging.exception("Got exception")
+                result = None
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
                 logging.info("Write stopped")
                 self.write_done = True
+                result = None
                 break
 
     def computeSpeed(self, filesize, duration):
