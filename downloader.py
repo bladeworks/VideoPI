@@ -76,7 +76,7 @@ class Downloader:
                     url = self.alternativeUrls[(part_num + retries) % (len(self.alternativeUrls))]
                 resp = session.get(url, headers=headers, allow_redirects=True, timeout=2, stream=True)
                 if 200 <= resp.status_code < 300:
-                    it = resp.iter_content(500000)
+                    it = resp.iter_content(10000)
                     content = ""
                     chun_start_time = time.time()
                     while True:
