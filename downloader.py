@@ -123,7 +123,7 @@ class Downloader:
             url = '"' + self.url + '"'
             if self.alternativeUrls:
                 url = ' '.join(['"' + u + '"' for u in self.alternativeUrls])
-            download_cmd = "%s -n %s %s -o %s -a &>> /tmp/videopi.log" % (AXEL_PATH, self.download_threads, url)
+            download_cmd = "%s -n %s %s -o %s -a &>> /tmp/videopi.log" % (AXEL_PATH, self.download_threads, url, filename)
             logging.info("Download_cmd: %s", download_cmd)
             self.download_process = subprocess.Popen(download_cmd, shell=True)
             self.download_process.communicate()
