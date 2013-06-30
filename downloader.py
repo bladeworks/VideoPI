@@ -78,7 +78,6 @@ class Downloader:
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
-                self.file_queue.put('stopped')
                 logging.info("Write stopped")
                 self.write_done = True
                 break
@@ -127,14 +126,13 @@ class Downloader:
             logging.info("Downloading %s-%s", start_byte, end_byte)
             # Run the axel to download the file
             subprocess.call(["rm", "-f", filename])
+            subprocess.call(["rm", "-f", "/tmp/*.st"])
             download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte), '-q']
             download_cmd.extend(urls)
 
             logging.info("Download_cmd: %s", download_cmd)
             self.download_process = subprocess.Popen(download_cmd)
-            (stdoutdata, stderrdata) = self.download_process.communicate()
-            logging.info("stdoutdata: %s", stdoutdata)
-            logging.info("stderrdata: %s", stderrdata)
+            self.download_process.communicate()
             logging.info("Done: Downloading %s-%s", start_byte, end_byte)
             self.write_queue.put(filename)
             if end_byte < self.total_length:
@@ -148,6 +146,7 @@ class Downloader:
         self.stopped = True
         if self.download_process:
             self.download_process.terminate()
+        self.file_queue.put('stopped')
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
