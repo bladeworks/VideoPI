@@ -166,7 +166,6 @@ class MultiDownloader:
             if not res.range_support:
                 logging.warn("Range request not supported so set process_num to 1.")
                 self.chunk_size = total_length
-                self.download_threads = 1
             if idx == 0:
                 downloader = Downloader(url, self.download_threads, self.chunk_size, start_percent,
                                         outfile=self.outfile, file_seq=file_seq,
