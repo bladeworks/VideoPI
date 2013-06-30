@@ -111,6 +111,9 @@ class Downloader:
 
     def download(self):
         start_byte = 1
+        urls = [self.url]
+        if self.alternativeUrls:
+            urls = self.alternativeUrls
         while True:
             if self.stopped:
                 self.write_queue.put('stopped')
@@ -124,14 +127,14 @@ class Downloader:
             logging.info("Downloading %s-%s", start_byte, end_byte)
             # Run the axel to download the file
             subprocess.call(["rm", "-f", filename])
-            url = '"' + self.url + '"'
-            if self.alternativeUrls:
-                url = ' '.join(['"' + u + '"' for u in self.alternativeUrls])
-            download_cmd = "%s -n %s %s -o %s -f %s -t %s -a &>> /tmp/videopi.log" %\
-                (AXEL_PATH, self.download_threads, url, filename, start_byte, end_byte)
+            download_cmd = [AXEL_PATH, '-n', self.download_threads, '-o', filename, '-f', start_byte, '-t', end_byte, '-a']
+            download_cmd.extend(urls)
+
             logging.info("Download_cmd: %s", download_cmd)
-            self.download_process = subprocess.Popen(download_cmd, shell=True, preexec_fn=os.setsid)
-            os.waitpid(self.download_process.pid, 0)
+            self.download_process = subprocess.Popen(download_cmd)
+            (stdoutdata, stderrdata) = self.download_process.communicate()
+            logging.info("stdoutdata: %s", stdoutdata)
+            logging.info("stderrdata: %s", stderrdata)
             self.write_queue.put(filename)
             if end_byte < self.total_length:
                 start_byte = end_byte + 1
@@ -142,7 +145,6 @@ class Downloader:
 
     def stop(self):
         self.stopped = True
-        os.killpg(self.download_process.pid, signal.SIGTERM)
         if self.download_process:
             self.download_process.terminate()
 
