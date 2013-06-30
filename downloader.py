@@ -135,6 +135,7 @@ class Downloader:
             (stdoutdata, stderrdata) = self.download_process.communicate()
             logging.info("stdoutdata: %s", stdoutdata)
             logging.info("stderrdata: %s", stderrdata)
+            logging.info("Done: Downloading %s-%s", start_byte, end_byte)
             self.write_queue.put(filename)
             if end_byte < self.total_length:
                 start_byte = end_byte + 1
