@@ -9,7 +9,6 @@ from threading import Thread
 from Queue import Queue
 from contextlib import contextmanager
 from NetworkHelper import BatchRequests
-from Helper import ThreadPool
 from config import *
 try:
     from userPrefs import *
@@ -128,8 +127,8 @@ class Downloader:
             download_cmd = "%s -n %s %s -o %s -f %s -t %s -a &>> /tmp/videopi.log" %\
                 (AXEL_PATH, self.download_threads, url, filename, start_byte, end_byte)
             logging.info("Download_cmd: %s", download_cmd)
-            self.download_process = subprocess.Popen(download_cmd, shell=True)
-            self.download_process.communicate()
+            self.download_process = subprocess.Popen(download_cmd, shell=True, preexec_fn=os.setsid)
+            os.waitpid(self.download_process.pid, 0)
             self.write_queue.put(filename)
             if end_byte < self.total_length:
                 start_byte = end_byte + 1
@@ -142,6 +141,7 @@ class Downloader:
         self.stopped = True
         self.file_queue.task_done()
         self.write_queue.task_done()
+        os.killpg(self.download_process.pid, signal.SIGTERM)
         if self.download_process:
             self.download_process.terminate()
 
