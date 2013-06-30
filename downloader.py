@@ -77,10 +77,12 @@ class Downloader:
                 self.file_queue.put(result)
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
+            else:
+                break
             if self.stopped and self.write_queue.empty():
                 logging.info("Write stopped")
-                self.write_done = True
                 break
+        self.write_done = True
 
     def getSizeInfo(self):
         if not self.total_length:
@@ -115,7 +117,6 @@ class Downloader:
             urls = self.alternativeUrls
         while True:
             if self.stopped:
-                self.write_queue.put('stopped')
                 break
             filename = self.file_queue.get()
             if filename == 'stopped':
@@ -147,6 +148,7 @@ class Downloader:
         if self.download_process:
             self.download_process.terminate()
         self.file_queue.put('stopped')
+        self.write_queue.put('stopped')
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
