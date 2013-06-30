@@ -127,7 +127,7 @@ class Downloader:
             logging.info("Downloading %s-%s", start_byte, end_byte)
             # Run the axel to download the file
             subprocess.call(["rm", "-f", filename])
-            download_cmd = [AXEL_PATH, '-n', self.download_threads, '-o', filename, '-f', start_byte, '-t', end_byte, '-a']
+            download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte), '-a']
             download_cmd.extend(urls)
 
             logging.info("Download_cmd: %s", download_cmd)
