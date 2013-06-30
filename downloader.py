@@ -78,6 +78,7 @@ class Downloader:
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
+                self.file_queue.put('stopped')
                 logging.info("Write stopped")
                 self.write_done = True
                 break
@@ -115,6 +116,8 @@ class Downloader:
                 self.write_queue.put('stopped')
                 break
             filename = self.file_queue.get()
+            if filename == 'stopped':
+                break
             end_byte = start_byte + self.chunk_size - 1
             if end_byte > self.total_length:
                 end_byte = self.total_length
@@ -139,8 +142,6 @@ class Downloader:
 
     def stop(self):
         self.stopped = True
-        self.file_queue.task_done()
-        self.write_queue.task_done()
         os.killpg(self.download_process.pid, signal.SIGTERM)
         if self.download_process:
             self.download_process.terminate()
