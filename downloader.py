@@ -135,6 +135,7 @@ class Downloader:
                 start_byte = end_byte + 1
             else:
                 break
+        self.stopped = True
         logging.info("Finished download")
 
     def stop(self):
