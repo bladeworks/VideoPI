@@ -55,6 +55,9 @@ class Downloader:
         self.write_thread = Thread(target=self.writeFile)
         self.download_process = None
         self.stopped = False
+        self.file_queue = Queue()
+        self.file_queue.put('/tmp/faxel0')
+        self.file_queue.put('/tmp/faxel1')
 
     def writeFile(self):
         while True:
@@ -72,7 +75,7 @@ class Downloader:
                             f.write(rf.read())
                 except:
                     logging.exception("Got exception")
-                result = None
+                self.file_queue.put(result)
                 logging.debug("End write file %s" % filename)
                 self.file_seq += 1
             if self.stopped and self.write_queue.empty():
@@ -108,12 +111,11 @@ class Downloader:
 
     def download(self):
         start_byte = 1
-        file_name_idx = 0
         while True:
             if self.stopped:
                 self.write_queue.put('stopped')
                 break
-            filename = '/tmp/faxel%s' % (file_name_idx % 2)
+            filename = self.file_queue.get()
             end_byte = start_byte + self.chunk_size - 1
             if end_byte > self.total_length:
                 end_byte = self.total_length
@@ -128,14 +130,17 @@ class Downloader:
             logging.info("Download_cmd: %s", download_cmd)
             self.download_process = subprocess.Popen(download_cmd, shell=True)
             self.download_process.communicate()
+            self.write_queue.put(filename)
             if end_byte < self.total_length:
                 start_byte = end_byte + 1
-            file_name_idx += 1
-            self.write_queue.put(filename)
+            else:
+                break
         logging.info("Finished download")
 
     def stop(self):
         self.stopped = True
+        self.file_queue.task_done()
+        self.write_queue.task_done()
         if self.download_process:
             self.download_process.terminate()
 
