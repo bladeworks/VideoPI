@@ -80,8 +80,8 @@ class Downloader:
             else:
                 break
             if self.stopped and self.write_queue.empty():
-                logging.info("Write stopped")
                 break
+        logging.info("Write stopped")
         self.write_done = True
 
     def getSizeInfo(self):
