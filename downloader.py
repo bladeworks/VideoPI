@@ -148,6 +148,7 @@ class Downloader:
         if self.download_process:
             self.download_process.terminate()
         self.file_queue.put('stopped')
+        self.write_queue.queue.clear()
         self.write_queue.put('stopped')
 
     def getCatCmd(self):
