@@ -140,6 +140,8 @@ class Downloader:
                 start_byte = end_byte + 1
             else:
                 break
+        while not self.write_done:
+            time.sleep(0.1)
         self.stopped = True
         logging.info("Finished download")
 
