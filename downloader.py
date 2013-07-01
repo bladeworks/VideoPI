@@ -140,7 +140,7 @@ class Downloader:
                 start_byte = end_byte + 1
             else:
                 break
-        self.file_queue.put("stopped")
+        self.write_queue.put("stopped")
         while not self.write_done:
             time.sleep(0.1)
         self.stopped = True
