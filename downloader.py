@@ -148,8 +148,11 @@ class Downloader:
 
     def stop(self):
         self.stopped = True
-        if self.download_process:
-            self.download_process.terminate()
+        try:
+            if self.download_process:
+                self.download_process.terminate()
+        except:
+            logging.exception("Got exception")
         logging.info("Clear file_queue")
         self.file_queue.queue.clear()
         self.file_queue.put('stopped', False)
