@@ -150,9 +150,13 @@ class Downloader:
         self.stopped = True
         if self.download_process:
             self.download_process.terminate()
-        self.file_queue.put('stopped')
+        logging.info("Clear file_queue")
+        self.file_queue.queue.clear()
+        self.file_queue.put('stopped', False)
+        logging.info("Clear write_queue")
+        self.write_queue.get(False)
         self.write_queue.queue.clear()
-        self.write_queue.put('stopped')
+        self.write_queue.put('stopped', False)
 
     def getCatCmd(self):
         logging.info("Total file_num = %s", self.file_num)
