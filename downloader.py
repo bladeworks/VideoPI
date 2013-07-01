@@ -154,11 +154,12 @@ class Downloader:
         except:
             logging.exception("Got exception")
         logging.info("Clear file_queue")
-        self.file_queue.queue.clear()
+        self.file_queue.get(False)
+        self.file_queue.get(False)
         self.file_queue.put('stopped', False)
         logging.info("Clear write_queue")
         self.write_queue.get(False)
-        self.write_queue.queue.clear()
+        self.write_queue.get(False)
         self.write_queue.put('stopped', False)
 
     def getCatCmd(self):
