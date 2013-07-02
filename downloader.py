@@ -125,15 +125,27 @@ class Downloader:
             if end_byte > self.total_length:
                 end_byte = self.total_length
             logging.info("Downloading %s-%s", start_byte, end_byte)
-            # Run the axel to download the file
-            subprocess.call(["rm", "-f", filename])
-            subprocess.call(["rm", "-f", "/tmp/*.st"])
             download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte), '-q']
             download_cmd.extend(urls)
-
             logging.info("Download_cmd: %s", download_cmd)
-            self.download_process = subprocess.Popen(download_cmd)
-            self.download_process.communicate()
+            for i in range(5):
+                # Run the axel to download the file
+                if self.stopped:
+                    break
+                if i > 0:
+                    logging.warn("Retry %s", i)
+                subprocess.call(["rm", "-f", filename])
+                subprocess.call(["rm", "-f", "/tmp/*.st"])
+                self.download_process = subprocess.Popen(download_cmd)
+                self.download_process.communicate()
+                try:
+                    file_size = os.path.getsize(filename)
+                    if file_size == (end_byte - start_byte + 1):
+                        break
+                except:
+                    logging.exception("Got exception")
+            else:
+                raise Exception("Failed after retry 5 times")
             logging.info("Done: Downloading %s-%s", start_byte, end_byte)
             self.write_queue.put(filename)
             if end_byte < self.total_length:
