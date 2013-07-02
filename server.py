@@ -132,6 +132,7 @@ def terminatePlayer():
     if player and player.isalive():
         logging.warn("Terminate the previous player")
         player.stop()
+        imgService.end()
         player = None
 
 
