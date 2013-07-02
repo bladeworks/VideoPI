@@ -126,15 +126,14 @@ class Downloader:
                 self.download_process = subprocess.Popen(download_cmd)
                 start_time = time.time()
                 timeout = False
-                while (not self.download_process.poll()):
-                    if (time.time() - start_time) > 120:
+                while (self.download_process.poll() is None):
+                    if (time.time() - start_time) > ((end_byte - start_byte + 1) / 100000):
                         timeout = True
                         break
                     time.sleep(0.1) 
                 if timeout:
                     self.download_process.terminate()
                     continue
-                self.download_process.communicate()
                 try:
                     file_size = os.path.getsize(filename)
                     if file_size == (end_byte - start_byte + 1):
