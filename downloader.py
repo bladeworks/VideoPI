@@ -248,7 +248,7 @@ class MultiDownloader:
                 time.sleep(0.5)
                 p.terminate()
             except:
-                pass
+                logging.exception("Got exception")
             finally:
                 logging.info("File %s released" % f)
 
