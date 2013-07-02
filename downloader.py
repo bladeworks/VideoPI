@@ -245,7 +245,7 @@ class MultiDownloader:
         for f in files:
             try:
                 p = subprocess.popen(['cat', f], stdout=DEVNULL, stderr=DEVNULL)
-                time.sleep(0.1)
+                time.sleep(0.5)
                 p.terminate()
             except:
                 pass
