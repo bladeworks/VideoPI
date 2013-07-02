@@ -17,7 +17,6 @@ import os
 import subprocess
 
 AXEL_PATH = os.path.join(os.path.dirname(__file__), "axel")
-DEVNULL = open(os.devnull, 'wb')
 
 
 class Downloader:
@@ -244,12 +243,14 @@ class MultiDownloader:
     def releaseFiles(self, files):
         for f in files:
             try:
+                DEVNULL = open(os.devnull, 'wb')
                 p = subprocess.popen(['cat', f], stdout=DEVNULL, stderr=DEVNULL)
-                time.sleep(0.5)
+                time.sleep(0.1)
                 p.terminate()
             except:
                 logging.exception("Got exception")
             finally:
+                DEVNULL.close()
                 logging.info("File %s released" % f)
 
     def getCatCmds(self):
