@@ -4,7 +4,6 @@
 import requests
 import logging
 import time
-import signal
 from threading import Thread
 from Queue import Queue
 from contextlib import contextmanager
@@ -18,18 +17,7 @@ import os
 import subprocess
 
 AXEL_PATH = os.path.join(os.path.dirname(__file__), "axel")
-
-
-@contextmanager
-def runWithTimeout(timeout=1):
-    def handler(signum, frame):
-        raise IOError("Time out")
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
+DEVNULL = open(os.devnull, 'wb')
 
 
 class Downloader:
@@ -254,17 +242,15 @@ class MultiDownloader:
                 time.sleep(0.1)
 
     def releaseFiles(self, files):
-        def readFile():
-            for f in files:
-                try:
-                    with open(f) as f1:
-                        f1.read()
-                except:
-                    pass
-                finally:
-                    logging.info("File %s released" % f)
-        with runWithTimeout(1):
-            readFile()
+        for f in files:
+            try:
+                p = subprocess.popen(['cat', f], stdout=DEVNULL, stderr=DEVNULL)
+                time.sleep(0.1)
+                p.terminate()
+            except:
+                pass
+            finally:
+                logging.info("File %s released" % f)
 
     def getCatCmds(self):
         logging.info("catCmds: %s" % self.catCmds)
