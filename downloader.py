@@ -124,6 +124,16 @@ class Downloader:
                 subprocess.call(["rm", "-f", filename])
                 subprocess.call(["rm", "-f", "/tmp/*.st"])
                 self.download_process = subprocess.Popen(download_cmd)
+                start_time = time.time()
+                timeout = False
+                while (not self.download_process.poll()):
+                    if (time.time() - start_time) > 120:
+                        timeout = True
+                        break
+                    time.sleep(0.1) 
+                if timeout:
+                    self.download_process.terminate()
+                    continue
                 self.download_process.communicate()
                 try:
                     file_size = os.path.getsize(filename)
