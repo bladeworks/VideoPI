@@ -61,8 +61,8 @@ class Downloader:
                             f.write(rf.read())
                 except:
                     logging.exception("Got exception")
-                self.file_queue.put(result)
                 logging.debug("End write file %s" % filename)
+                self.file_queue.put(result)
                 self.file_seq += 1
             else:
                 break
