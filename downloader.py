@@ -112,7 +112,7 @@ class Downloader:
             if end_byte > self.total_length:
                 end_byte = self.total_length
             logging.info("Downloading %s-%s", start_byte, end_byte)
-            download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte), '-q']
+            download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte), '-a']
             download_cmd.extend(urls)
             logging.info("Download_cmd: %s", download_cmd)
             for i in range(5):
