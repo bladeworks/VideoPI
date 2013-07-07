@@ -126,9 +126,12 @@ done\n""" % (download_file, download_cache_size)
 
     def stop(self):
         self._send_cmd(self._QUIT_CMD, True)
-        if self.currentVideo.downloader:
-            self.currentVideo.downloader.stop()
-        os.killpg(self._process.pid, signal.SIGTERM)
+        try:
+            if self.currentVideo.downloader:
+                self.currentVideo.downloader.stop()
+            os.killpg(self._process.pid, signal.SIGTERM)
+        except:
+            logging.exception("Got exception")
         self.currentVideo = None
 
     def set_speed(self):
