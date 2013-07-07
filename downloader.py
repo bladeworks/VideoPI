@@ -135,6 +135,7 @@ class Downloader:
                         timeout = True
                         break
                     time.sleep(0.1) 
+                self.download_process.communicate()
                 if timeout:
                     logging.warn("Timeout.")
                     self.download_process.terminate()
@@ -143,6 +144,8 @@ class Downloader:
                     file_size = os.path.getsize(filename)
                     if file_size == expected_file_size:
                         break
+                    else:
+                        logging.warn("Filesize mismatch, expect %s but got %s", expected_file_size, file_size)
                 except:
                     logging.exception("Got exception")
             else:
