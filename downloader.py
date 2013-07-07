@@ -124,7 +124,8 @@ class Downloader:
                     logging.warn("Retry %s", i)
                 subprocess.call(["rm", "-f", filename])
                 subprocess.call(["rm", "-f", "/tmp/%s.st" % filename])
-                self.download_process = subprocess.Popen(download_cmd)
+                with open('/tmp/download.log', 'w') as f:
+                    self.download_process = subprocess.Popen(download_cmd, stdout=f)
                 start_time = time.time()
                 timeout = False
                 expected_file_size = end_byte - start_byte + 1
