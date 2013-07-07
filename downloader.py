@@ -122,21 +122,26 @@ class Downloader:
                 if i > 0:
                     logging.warn("Retry %s", i)
                 subprocess.call(["rm", "-f", filename])
-                subprocess.call(["rm", "-f", "/tmp/*.st"])
+                subprocess.call(["rm", "-f", "/tmp/%s.st" % filename])
                 self.download_process = subprocess.Popen(download_cmd)
                 start_time = time.time()
                 timeout = False
+                expected_file_size = end_byte - start_byte + 1
+                timeout_sec = 30
+                if expected_file_size > 5000000:
+                    timeout_sec = expected_file_size / 100000
                 while (self.download_process.poll() is None):
-                    if (time.time() - start_time) > ((end_byte - start_byte + 1) / 100000):
+                    if (time.time() - start_time) > timeout_sec:
                         timeout = True
                         break
                     time.sleep(0.1) 
                 if timeout:
+                    logging.warn("Timeout.")
                     self.download_process.terminate()
                     continue
                 try:
                     file_size = os.path.getsize(filename)
-                    if file_size == (end_byte - start_byte + 1):
+                    if file_size == expected_file_size:
                         break
                 except:
                     logging.exception("Got exception")
