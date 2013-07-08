@@ -100,8 +100,8 @@ class Downloader:
     def download(self):
         start_byte = 1
         urls = [self.url]
-        if self.alternativeUrls:
-            urls = self.alternativeUrls
+        #if self.alternativeUrls:
+        #    urls = self.alternativeUrls
         while True:
             if self.stopped:
                 break
