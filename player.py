@@ -176,7 +176,10 @@ class Controller:
                     parseResult.progress = int(progress)
                 self.add(parseResult)
             else:
-                return parseResult
+                if parseResult:
+                    return parseResult
+                else:
+                    return "Error happened, please refresh the page."
 
     def add(self, video):
         self.playQueue.put(Player(video))
