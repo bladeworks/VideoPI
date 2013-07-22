@@ -4,12 +4,9 @@ from webparser import Video
 import sqlite3
 import time
 import logging
-from config import *
-try:
-    from userPrefs import *
-except:
-    logging.info("No userPrefs.py found so skip user configuration.")
+from config import get_cfg
 #CREATE TABLE media(id INTEGER PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL, last_play_date INTEGER, last_play_pos INTEGER, duration INTEGER, site TEXT)
+dbStorage = get_cfg('dbStorage')
 
 
 def db_getHistory():
@@ -33,7 +30,7 @@ def db_writeHistory(video):
         cur = con.cursor()
         if video.dbid:
             if video.progress >= 0:
-                logging.debug("set last_play_pos = %s for %s", video.progress, video.dbid)
+                # logging.debug("set last_play_pos = %s for %s", video.progress, video.dbid)
                 con.execute("""
                     UPDATE media SET last_play_pos = ?, last_play_date = ? WHERE id = ?
                     """, (video.progress, int(time.time()), video.dbid,))

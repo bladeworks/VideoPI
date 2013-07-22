@@ -14,12 +14,11 @@ except ImportError:
     import xml.etree.ElementTree as ET
 from urlparse import urlparse, parse_qs
 from struct import unpack
-from config import *
-from NetworkHelper import *
-try:
-    from userPrefs import *
-except:
-    logging.info("Not userPrefs.py found so skip user configuration.")
+from NetworkHelper import BatchRequests
+from config import get_cfg
+
+playlistStorage = get_cfg('playlistStorage')
+default_format = int(get_cfg('default_format'))
 
 format2keyword = {
     1: "",
@@ -190,7 +189,7 @@ class WebParser:
         return ""
 
     def getSiteUrl(self):
-        siteUrl = urlparse(self.url).hostname
+        siteUrl = urlparse(urllib2.unquote(self.url)).hostname
         logging.debug("siteUrl = %s" % siteUrl)
         return siteUrl.encode('utf8')
 
@@ -310,6 +309,7 @@ class WebParser:
             self.availableFormat.append(2)
         if "format=super" in responseString:
             self.availableFormat.append(3)
+        return responseString
 
     def getPlayFormat(self):
         if not self.format:
@@ -321,13 +321,14 @@ class WebParser:
 
     def getM3UFromFlvcd(self):
         # 默认清晰度最高的
-        self.getAvailableFormat()
+        responseString = self.getAvailableFormat()
         if not self.availableFormat:
             return None
         self.getPlayFormat()
         flvcdUrl = "http://www.flvcd.com/parse.php?kw=%s&flag=one&format=%s" % \
             (self.url, format2keyword[self.format])
-        responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
+        if len(self.availableFormat) > 1:
+            responseString = self.fetchWeb(flvcdUrl).decode('gb2312', 'ignore').encode('utf8')
         m3u = self.parseField(self.m3u_pattern, responseString, 'm3u')
         if not m3u:
             m3u = self.parseField(self.single_pattern, responseString, 'url')
@@ -377,6 +378,7 @@ class ClubWebParser(WebParser):
         WebParser.__init__(self, "club", url, format)
 
     def parse(self):
+        self.url = urllib2.unquote(self.url)
         if "playHot?id=" in self.url or "playHothtml5?id" in self.url:
             return self.parseVideo()
         else:

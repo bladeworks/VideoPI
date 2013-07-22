@@ -35,7 +35,7 @@ class BatchRequests:
         return self.results
 
     def getOne(self, url, idx):
-        logging.info("Get %s", url)
+        # logging.info("Get %s", url)
         start_time = time.time()
         resp = None
         if not 'Range' in self.headers:
@@ -56,7 +56,7 @@ class BatchRequests:
         if resp and resp.history and self.replace_url:
             url = resp.history[-1].headers['location']
         duration = time.time() - start_time
-        logging.info("It takes %s to get %s.", duration, url)
+        # logging.info("It takes %s to get %s.", duration, url)
         self.results[idx] = Result(url, resp, duration, range_support)
 
     def findFastest(self):
@@ -70,7 +70,7 @@ class BatchRequests:
         if not self.results:
             self.get()
         ranked = [r.url for r in sorted(self.results, key=lambda result: result.duration) if r and r.duration < 2]
-        logging.info("Ranked = %s" % ranked)
+        # logging.info("Ranked = %s" % ranked)
         return ranked
 
 if __name__ == '__main__':

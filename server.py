@@ -1,47 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 from bottle import route, run, template, request, static_file, post, get, redirect, error, response
-from database import *
-from webparser import *
 import subprocess
 import sys
-import os
 import time
 import urllib
 import urllib2
-from urlparse import urlparse
-from threading import Thread, Lock
-from Queue import Queue
-from Constants import *
-from pyomxplayer import OMXPlayer
-from show_image import *
-from downloader import *
-from config import *
-from Helper import *
-try:
-    from userPrefs import *
-except:
-    logging.info("No userPrefs.py found so skip user configuration.")
 import bottle
+from urlparse import urlparse
+from Constants import websites, actionDesc
+from Helper import newFifo, newDir
+from database import db_getHistory, db_delete
+from player import Controller
+from config import get_cfg
+from webparser import Video
 
 bottle.debug = True
 
-current_website = None
-currentVideo = None
-currentPlayerApp = None
-
-player = None
-playThread = None
-playQueue = Queue()
-imgService = ImgService()
-sreenWidth = 0
-sreenHeight = 0
-
-lock = Lock()
-
 import logging
 logging.basicConfig(format='%(asctime)s %(threadName)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
-                    filename=logStorage, level=logging.DEBUG)
+                    filename=get_cfg('logStorage'), level=logging.DEBUG)
 
 
 def exceptionLogger(type, value, tb):
@@ -51,300 +29,37 @@ def exceptionLogger(type, value, tb):
 
 sys.excephook = exceptionLogger
 
-
-def clearQueue():
-    global playQueue
-    logging.info("Clear the queue.")
-    with playQueue.mutex:
-        playQueue.queue.clear()
+controller = None
+current_website = None
 
 
-def parseM3U():
-    with open(playlistStorage, 'r') as f:
-        return [v.strip() for v in f.readlines() if v.startswith('http')]
-
-
-def fillQueue(urls=[]):
-    global playQueue
-    logging.info("fillQueue: %s", urls)
-    if urls:
-        logging.info("Add item to queue %s", urls)
-        for u in urls:
-            playQueue.put(u)
+def _render(wait=False, redirect_to=None):
+    if (wait):
+        while not (controller.currentPlayer and controller.currentPlayer.video and controller.currentPlayer.isAlive()):
+            time.sleep(0.1)
+    if redirect_to:
+        redirect(redirect_to)
+    if controller and controller.currentPlayer and controller.currentPlayer.video and controller.currentPlayer.isAlive():
+        return template("index", websites=websites, currentVideo=controller.currentPlayer.video, actionDesc=actionDesc,
+                        history=db_getHistory())
     else:
-        for v in parseM3U():
-            playQueue.put(v)
-    # fill other related videos
-    if currentVideo and currentVideo.nextVideo:
-        logging.debug("Put next: %s", urllib2.unquote(currentVideo.nextVideo))
-        playQueue.put("next:%s" % urllib2.unquote(currentVideo.nextVideo))
-
-
-def startPlayer(url):
-    logging.info("Start player for %s", url)
-    global player, current_website, currentVideo, screenWidth, screenHeight
-    currentVideo.playUrl = url
-    player = OMXPlayer(currentVideo, screenWidth, screenHeight)
-
-
-def play_list():
-    global player, playQueue, currentVideo
-    while True:
-        v = playQueue.get()
-        logging.info("Get item from playQueue: %s", v)
-        if v.startswith('next:'):
-            logging.info("Now play the next: %s", v)
-            parse_url(v.replace('next:', ''), redirectToHome=False)
-            continue
-        else:
-            startPlayer(v.strip())
-        imgService.begin(LOADING)
-        time.sleep(2)
-        while True:
-            if player and player.isalive():
-                time.sleep(1)
-                with lock:
-                    try:
-                        if currentVideo:
-                            position = int(player.position / 1000000)
-                            # logging.debug("Get position = %s", position)
-                            if position > 0 and imgService.stop is False:
-                                imgService.end()
-                            new_progress = int(currentVideo.start_pos) + position
-                            if currentVideo.progress != new_progress:
-                                currentVideo.progress = new_progress
-                                if new_progress % 30 == 0 and new_progress > 0:
-                                    db_writeHistory(currentVideo)
-                    except:
-                        logging.exception("Got exception")
-            else:
-                logging.info("Break")
-                if currentVideo and currentVideo.downloader and (not currentVideo.downloader.stopped):
-                    currentVideo.downloader.stop()
-                imgService.end()
-                if playQueue.empty():
-                    imgService.begin(FINISHED)
-                break
-
-
-def terminatePlayer():
-    global player
-    if player and player.isalive():
-        logging.warn("Terminate the previous player")
-        player.stop()
-        imgService.end()
-        player = None
-
-
-def new_play_thread():
-    global playThread
-    if not playThread or (not playThread.isAlive()):
-        logging.debug("New a thred to play the list.")
-        playThread = Thread(target=play_list)
-        playThread.start()
-
-
-def getWgetCmd(url, output="-"):
-    return wrapRetry('wget -o /tmp/download.log -UMozilla/5.0 -O %s "%s"'
-                     % (output, url))
-
-
-def getAxelCmd(url, output):
-    return "rm -f %s && %s " % (output, wrapRetry('axel -n %s -o %s "%s" &>/tmp/download.log'
-           % (download_threads, output, url)))
-
-
-def wrapRetry(cmd, max_retry=20):
-    return ("retry=1; while [ $retry -le %s ]; do if %s; then break; fi; sleep 1; "
-            "retry=$(( $retry + 1 )); if [ $retry - eq %s ]; then exit 1; fi; done") \
-        % (max_retry, cmd, max_retry)
-
-
-def getFfmpegCmd(ss, inputFile, outputFile):
-    if ss > 0:
-        return 'nice -n 19 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
-               % (ss, inputFile, outputFile, outputFile)
-    else:
-        return 'nice -n 19 ffmpeg -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
-               % (inputFile, outputFile, outputFile)
-
-
-def merge_play(sections, where=0, start_idx=0, delta=0):
-    global currentVideo
-    clearQueue()
-    logging.info("Merge and play: where = %s, start_idx = %s, delta = %s", where, start_idx, delta)
-    if download_to_local:
-        currentVideo.playUrl = download_file
-    else:
-        currentVideo.playUrl = "/tmp/all.ts"
-        newFifo(currentVideo.playUrl)
-    download_args = ""
-    download_lines = []
-    p_list = []
-    dp = download_program
-    ffmpeg_input = ""
-    if len(sections[start_idx:]) == 1 and delta == 0:
-        dp = "private"
-    if dp == "private":
-        if len(sections[start_idx:]) == 1 and delta == 0:
-            currentVideo.downloader = MultiDownloader(sections[start_idx:], alternativeUrls=currentVideo.alternativeUrls)
-            if currentVideo.downloader.outfile != currentVideo.playUrl:
-                download_args += '%s > %s 2>/tmp/cat.log' % (currentVideo.downloader.getCatCmds()[0], currentVideo.playUrl)
-        else:
-            if len(sections[start_idx:]) == 1 and delta > 0:
-                ffmpeg_part = "/tmp/ffmpeg_part/0"
-                download_args = 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' %\
-                                (ffmpeg_part, 30, currentVideo.playUrl)
-                download_args += getFfmpegCmd(delta - 30, sections[start_idx:][0], ffmpeg_part)
-            else:
-                currentVideo.downloader = MultiDownloader(sections[start_idx:], alternativeUrls=currentVideo.alternativeUrls)
-                catCmds = currentVideo.downloader.getCatCmds()
-                ffmpeg_part = "/tmp/ffmpeg_part"
-                p_list = []
-                for idx, catCmd in enumerate(catCmds):
-                    pname = os.path.join(ffmpeg_part, str(idx))
-                    newFifo(pname)
-                    download_lines.append("{\n%s | %s\n}" % (catCmd, getFfmpegCmd(0, "-", pname)))
-                    p_list.append(pname)
-                ffmpeg_input = " ".join(p_list)
-                download_args += 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                                 % (ffmpeg_input, delta, currentVideo.playUrl)
-                download_args += " && ".join(download_lines)
-    else:
-        if len(sections[start_idx:]) == 1:
-            dp = "wget"
-        logging.info("dp = %s", dp)
-        for idx, v in enumerate(sections[start_idx:]):
-            pname = "/tmp/p%s" % idx
-            fname = "/tmp/f%s" % dp
-            newFifo(pname)
-            p_list.append(pname)
-            if idx == 0:
-                if dp == 'axel':
-                    download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(delta, fname, pname)))
-                    continue
-                download_lines.append("{\n%s\n}" % getFfmpegCmd(delta, v, pname))
-                continue
-            if dp == 'wget':
-                download_lines.append("{\n%s | %s\n}" % (getWgetCmd(v), getFfmpegCmd(0, "-", pname)))
-            elif dp == 'axel':
-                download_lines.append("{\n%s && %s\n}" % (getAxelCmd(v, fname), getFfmpegCmd(0, fname, pname)))
-            else:
-                download_lines.append("{\n%s\n}" % getFfmpegCmd(0, v, pname))
-        ffmpeg_input = " ".join(p_list)
-        download_args += 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                         % (ffmpeg_input, currentVideo.playUrl)
-        download_args += " && ".join(download_lines)
-    currentVideo.download_args = download_args
-    fillQueue(urls=[currentVideo.playUrl])
-    new_play_thread()
-
-
-def getSections():
-    if currentVideo.realUrl == playlistStorage:
-        return parseM3U()
-    else:
-        return [currentVideo.realUrl]
-
-
-def play_url(redirectToHome=True):
-    global player, currentVideo, currentPlayerApp, playQueue, progress
-    clearQueue()
-    terminatePlayer()
-    db_writeHistory(currentVideo)
-    logging.info("Playing %s", currentVideo.realUrl)
-    # logging.debug("currentVideo = %s", currentVideo)
-    new_play_thread()
-    if currentVideo.realUrl == playlistStorage:
-        # Because omxplayer doesn't support list we have to play one by one.
-        sections = getSections()
-        func = fillQueue
-        args = []
-        if 'merge' in websites[current_website] and websites[current_website]['merge']:
-            func = merge_play
-            args = sections
-        logging.debug("currentVideo.progress = %s", currentVideo.progress)
-        if currentVideo.progress > advanceTime:
-            result = goto(currentVideo.progress - advanceTime, 0)
-            if result != 'OK':
-                func(args)
-        else:
-            func(args)
-    else:
-        fillQueue([currentVideo.realUrl])
-    if redirectToHome:
-        while not (player and player.isalive()):
-            time.sleep(1)
-        redirect('/')
-
-
-def parse_url(url, format=None, dbid=None, redirectToHome=True):
-    logging.debug("parse_url %s, format = %s, dbid = %s", url, format, dbid)
-    imgService.begin(LOADING)
-    global currentVideo
-    if currentVideo and currentVideo.allRelatedVideo:
-        relatedUrls = [v['url'] for v in currentVideo.allRelatedVideo]
-        if (currentVideo.realUrl in relatedUrls) and (url in relatedUrls):
-            idx = relatedUrls.index(url)
-            # Don't parse the file
-            allRelatedVideo = []
-            for v in currentVideo.allRelatedVideo:
-                v['current'] = False
-                if v['url'] == url:
-                    v['current'] = True
-                allRelatedVideo.append(v)
-            previousVideo, nextVideo = None, None
-            if idx > 0:
-                previousVideo = allRelatedVideo[idx - 1]['url']
-            if idx < (len(allRelatedVideo) - 1):
-                nextVideo = allRelatedVideo[idx + 1]['url']
-            newCurrentVideo = Video(currentVideo.allRelatedVideo[idx]['title'], currentVideo.url, url, 0, current_website,
-                                    availableFormat=currentVideo.availableFormat, currentFormat=format,
-                                    allRelatedVideo=allRelatedVideo, previousVideo=previousVideo,
-                                    nextVideo=nextVideo)
-            logging.debug("newCurrentVideo = %s", newCurrentVideo)
-            currentVideo = newCurrentVideo
-            if dbid:
-                currentVideo.dbid = dbid
-            logging.debug("currentVideo = %s", currentVideo)
-            return play_url(redirectToHome)
-    parser = websites[current_website]['parser'](url, format)
-    parseResult = parser.parse()
-    if isinstance(parseResult, Video):
-        with lock:
-            terminatePlayer()
-            currentVideo = parseResult
-            logging.info('currentVideo = %s', str(currentVideo))
-            if dbid:
-                currentVideo.dbid = dbid
-                currentVideo.progress = db_getById(int(dbid)).progress
-        return play_url(redirectToHome)
-    else:
-        logging.info('No video found, return the web page.')
-        imgService.end()
-        return parseResult
+        return template("index", websites=websites, currentVideo=None, actionDesc=actionDesc,
+                        history=db_getHistory())
 
 
 @route('/')
 def index():
-    if not (player and player.isalive()):
-        return template("index", websites=websites, currentVideo=None, actionDesc=actionDesc,
-                        history=db_getHistory())
-    return template("index", websites=websites, currentVideo=currentVideo, actionDesc=actionDesc,
-                    history=db_getHistory())
+    return _render()
 
 
 @route('/play')
 def history_play():
-    global currentVideo
-    currentVideo = db_getById(request.query.id)
-    start = int(request.query.start)
-    if start >= 0:
-        logging.info("Start from %s." % start)
-        currentVideo.progress = start
-        db_writeHistory(currentVideo)
-    redirect('/forward?site=%s&url=%s&dbid=%s' % (currentVideo.site, currentVideo.url,
-             currentVideo.dbid))
+    global controller
+    if controller:
+        controller.stopAll()
+    controller = Controller(None)
+    controller.parseHistory(request.query.id, request.query.start)
+    _render(wait=True, redirect_to='/')
 
 
 @route('/static/<filename:path>')
@@ -354,25 +69,17 @@ def static(filename):
 
 @post('/control/<action>')
 def control(action):
-    global player, currentVideo
     feedback = ""
-    if action == "stop":
-        clearQueue()
-    if player and player.isalive():
+    if controller and controller.currentPlayer.isAlive():
         feedback = "OK"
         if action == "stop":
-            if currentVideo.progress > 0:
-                logging.debug("Write last_play_pos to %s", currentVideo.progress)
-                db_writeHistory(currentVideo)
-            terminatePlayer()
-            player = None
-            currentVideo = None
+            controller.stopAll()
         elif action == "pause":
-            player.toggle_pause()
+            controller.currentPlayer.toggle_pause()
         elif action == "volup":
-            player.volup()
+            controller.currentPlayer.volup()
         elif action == "voldown":
-            player.voldown()
+            controller.currentPlayer.voldown()
         else:
             feedback = "Not implemented action: " + action
     else:
@@ -391,9 +98,8 @@ def history():
                                 <h3>%s(%s)</h3>
                                 <p>总共%s(上次播放到%s)</p>
                             </a>
-                            <a href="#" onclick="deleteHistory('%s');return false" class="split-button-custom" data-role="button" data-icon="delete" data-iconpos="notext"></a>
-                            <a href="/play?id=%s&start=0" class="split-button-custom" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false"></a>
-                            <a href="#" style="display: none;">Dummy</a>
+                            <a href="#" onclick="deleteHistory('%s');return false" class="split-button-custom ui-btn ui-btn-up-b ui-shadow ui-btn-corner-all ui-btn-icon-notext" data-role="button" data-icon="delete" data-iconpos="notext" data-corners="true" data-shadow="true" data-iconshadow="true" data-wrapperels="span" data-theme="b" title=""><span class="ui-btn-inner"><span class="ui-btn-text"></span><span class="ui-icon ui-icon-delete ui-icon-shadow">&nbsp;</span></span></a>
+                            <a href="/play?id=%s&start=0" class="split-button-custom ui-btn ui-btn-up-b ui-shadow ui-btn-corner-all ui-btn-icon-notext" data-role="button" data-icon="refresh" data-iconpos="notext" data-ajax="false" data-corners="true" data-shadow="true" data-iconshadow="true" data-wrapperels="span" data-theme="b" title=""><span class="ui-btn-inner"><span class="ui-btn-text"></span><span class="ui-icon ui-icon-refresh ui-icon-shadow">&nbsp;</span></span></a>                            <a href="#" style="display: none;">Dummy</a>
                         </li>
                         """ % (video.dbid, video.title, websites[video.site]['title'],
                                video.durationToStr(), Video.formatDuration(video.progress), video.dbid, video.dbid)
@@ -417,53 +123,35 @@ def favicon():
 
 @get('/progress')
 def get_progress():
-    if currentVideo and player and player.isalive():
+    if controller and controller.currentPlayer and controller.currentPlayer.isAlive():
+        currentVideo = controller.currentPlayer.video
+        currentVideo.progress = controller.currentPlayer.video.progress
         return {"title": currentVideo.title, "progress": str(currentVideo.progress), "duration": currentVideo.durationToStr()}
     else:
         return {"title": "N/A", "progress": "0", "duration": "N/A"}
 
 
 @post('/goto/<where>')
-def goto(where, fromPos=-1):
-    logging.info("Goto %s", where)
-    new_progress, c_idx = currentVideo.getSectionsFrom(int(where))
-    logging.debug("new_progress = %s, c_idx = %s", new_progress, c_idx)
-    currentIdx = 0
-    if fromPos == -1:
-        currentIdx = currentVideo.getCurrentIdx()
-        logging.debug("currentIdx = %s", currentIdx)
-    sections = getSections()
-    if new_progress is not None and c_idx is not None:
-        if 'merge' in websites[current_website] and websites[current_website]['merge']:
-            clearQueue()
-            terminatePlayer()
-            currentVideo.start_pos = where
-            currentVideo.progress = where
-            merge_play(sections, where=where, start_idx=c_idx, delta=int(int(where) - int(new_progress)))
-            db_writeHistory(currentVideo)
-            return 'OK'
-        else:
-            if c_idx != currentIdx:
-                clearQueue()
-                terminatePlayer()
-                currentVideo.start_pos = new_progress
-                currentVideo.progress = new_progress
-                fillQueue(sections[c_idx:])
-                return "OK"
+def goto(where):
+    controller.goto(where)
+    return "OK"
 
 
 @route('/forward')
 def forward():
-    global vid, title, current_website, currentVideo
-    format = None
+    global current_website, controller
+    format, dbid = None, None
     if 'site' in request.query:
         current_website = request.query.site
     if 'format' in request.query:
         format = int(request.query.format)
-    dbid = None
     if 'dbid' in request.query:
         dbid = request.query.dbid
     url = request.query.url
+    # if it's the same url with the nextPlayer then just stop the current player.
+    if controller and controller.nextPlayer and urllib2.unquote(url) == urllib2.unquote(controller.nextPlayer.video.url):
+        controller.stopCurrentPlayer()
+        _render(wait=True, redirect_to='/')
     logging.info("Forwarding to %s", url)
     if current_website and url.startswith('/'):
         url = websites[current_website]['url'] + url
@@ -484,7 +172,18 @@ def forward():
     if current_website == 'sohu' and 'wd' in request.query and not url:
         url = "http://so.tv.sohu.com/mts?box=1&wd=%s" % (request.query.wd)
         logging.debug("The url for sohu search is: %s", url)
-    return parse_url(url, format, dbid)
+    newController = Controller(current_website)
+    if dbid:
+        res = newController.parseHistory(dbid, -1, format)
+    else:
+        res = newController.parse(url, format)
+    if res:
+        return res 
+    else:
+        if controller:
+            controller.stopAll()
+        controller = newController
+    _render(wait=True, redirect_to='/')
 
 
 @get('/shutdown')
@@ -501,6 +200,7 @@ def restart():
 
 @error(404)
 def error404(error):
+    global current_website
     logging.debug("404 on url: %s", request.url)
     if request.url == "http://192.168.1.100/jsonrpc":
         return
@@ -526,27 +226,18 @@ def error500(error):
     return ("Exception: %s\nDetails: %s" % (error.exception, error.traceback)).replace('\n', '<br>')
 
 
-newFifo('/tmp/omxpipe')
 newFifo('/tmp/cmd')
+newFifo('/tmp/all.ts')
 newDir('/tmp/ffmpeg_part')
 newDir('/tmp/download_part')
 for i in range(1000):
     newFifo('/tmp/download_part/%s' % i)
 
 
-def getScreenSize():
-    try:
-        output = subprocess.check_output(['fbset'])
-        p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
-        global screenWidth, screenHeight
-        sw, sh = p.search(output).groups()
-        screenWidth = float(sw)
-        screenHeight = float(sh)
-    except:
-        logging.exception("Exception catched")
-
-getScreenSize()
 try:
-    run(host='0.0.0.0', port=80, quiet=True)
+    if sys.platform == 'darwin':
+        run(host='0.0.0.0', port=7777, reloader=True)
+    else:
+        run(host='0.0.0.0', port=80, quiet=True)
 except:
     logging.exception("Exception catched")

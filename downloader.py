@@ -4,19 +4,21 @@
 import requests
 import logging
 import time
-from threading import Thread
-from Queue import Queue
-from contextlib import contextmanager
-from NetworkHelper import BatchRequests
-from config import *
-try:
-    from userPrefs import *
-except:
-    logging.info("No userPrefs.py found so skip user configuration.")
 import os
 import subprocess
+import sys
+from threading import Thread
+from Queue import Queue
+from NetworkHelper import BatchRequests
+from config import get_cfg
 
-AXEL_PATH = os.path.join(os.path.dirname(__file__), "axel")
+chunk_size = int(get_cfg('chunk_size'))
+download_threads = int(get_cfg('download_threads'))
+
+if sys.platform == 'darwin':
+    AXEL_PATH = os.path.join(os.path.dirname(__file__),"darwin", "axel")
+else:
+    AXEL_PATH = os.path.join(os.path.dirname(__file__), "axel")
 
 
 class Downloader:
@@ -55,12 +57,7 @@ class Downloader:
                 else:
                     filename = "/tmp/download_part/%s" % self.file_seq
                 logging.debug("Begin write file %s", filename)
-                try:
-                    with open(filename, 'a+b') as f:
-                        with open(result, 'r') as rf:
-                            f.write(rf.read())
-                except:
-                    logging.exception("Got exception")
+                subprocess.call("cat %s > %s" % (result, filename), shell=True)
                 logging.debug("End write file %s" % filename)
                 self.file_queue.put(result)
                 self.file_seq += 1
@@ -91,7 +88,7 @@ class Downloader:
         self.file_num = int(self.total_length / self.chunk_size)
         if self.total_length % self.chunk_size > 0:
             self.file_num += 1
-        logging.info("total_length = %s", self.total_length)
+        logging.info("total_length = %s, chunk_size = %s", self.total_length, self.chunk_size)
 
     def start(self):
         self.download_thread.start()
@@ -114,8 +111,8 @@ class Downloader:
             logging.info("Downloading %s-%s", start_byte, end_byte)
             download_cmd = [AXEL_PATH, '-n', str(self.download_threads), '-o', filename, '-f', str(start_byte), '-t', str(end_byte)]
             download_cmd.extend(urls)
-            logging.info("Download_cmd: %s", download_cmd)
-            logging.info("Download_cmd: %s", " ".join(download_cmd))
+            # logging.info("Download_cmd: %s", download_cmd)
+            # logging.info("Download_cmd: %s", " ".join(download_cmd))
             for i in range(5):
                 # Run the axel to download the file
                 if self.stopped:
@@ -126,24 +123,7 @@ class Downloader:
                 subprocess.call(["rm", "-f", "/tmp/%s.st" % filename])
                 with open('/tmp/download.log', 'w') as f:
                     self.download_process = subprocess.Popen(download_cmd, stdout=f)
-                start_time = time.time()
-                timeout = False
                 expected_file_size = end_byte - start_byte + 1
-                timeout_sec = 30
-                if expected_file_size > 5000000:
-                    timeout_sec = expected_file_size / 100000
-                while (self.download_process.poll() is None):
-                    if (time.time() - start_time) > timeout_sec:
-                        timeout = True
-                        break
-                    time.sleep(0.1) 
-                if timeout:
-                    logging.warn("Timeout.")
-                    try:
-                        self.download_process.terminate()
-                    except:
-                        logging.exception("Got exception")
-                    continue
                 self.download_process.communicate()
                 try:
                     file_size = os.path.getsize(filename)
@@ -202,9 +182,11 @@ class Downloader:
 
 class MultiDownloader:
 
-    def __init__(self, urls, start_percent=0, outfile=None, alternativeUrls=[]):
+    def __init__(self, urls, downloadLock=None, start_percent=0, outfile=None, alternativeUrls=[]):
         self.urls = urls
         self.chunk_size = chunk_size
+        self.start_percent = start_percent
+        self.file_seq = 0
         self.download_threads = download_threads
         self.catCmds = []
         self.downloaders = []
@@ -212,43 +194,48 @@ class MultiDownloader:
         self.stopped = False
         self.download_thread = Thread(target=self.download)
         self.outfile = outfile
-        file_seq = 0
+        self.downloadLock = downloadLock
+        self.alternativeUrls = alternativeUrls
         logging.info("chunk_size = %s, download_threads = %s", self.chunk_size, download_threads)
+
+    def setLock(self, lock):
+        self.downloadLock = lock
+
+    def getSizeInfo(self):
         ress = BatchRequests(self.urls, replace_url=False, retry=10).get()
         for idx, res in enumerate(ress):
             url = res.url
             total_length = int(res.resp.headers["content-length"])
             logging.info(res.resp.headers)
+            current_chunk_size = self.chunk_size
             if not res.range_support:
                 logging.warn("Range request not supported so set process_num to 1.")
-                self.chunk_size = total_length
+                current_chunk_size = total_length
             if idx == 0:
-                downloader = Downloader(url, self.download_threads, self.chunk_size, start_percent,
-                                        outfile=self.outfile, file_seq=file_seq,
-                                        alternativeUrls=alternativeUrls, total_length=total_length)
+                downloader = Downloader(url, self.download_threads, current_chunk_size, self.start_percent,
+                                        outfile=self.outfile, file_seq=self.file_seq,
+                                        alternativeUrls=self.alternativeUrls, total_length=total_length)
             else:
-                downloader = Downloader(url, self.download_threads, self.chunk_size,
-                                        outfile=self.outfile, file_seq=file_seq,
-                                        alternativeUrls=alternativeUrls, total_length=total_length)
-            file_seq += downloader.file_num
+                downloader = Downloader(url, self.download_threads, current_chunk_size,
+                                        outfile=self.outfile, file_seq=self.file_seq,
+                                        alternativeUrls=self.alternativeUrls, total_length=total_length)
+            self.file_seq += downloader.file_num
             self.downloaders.append(downloader)
             self.catCmds.append(downloader.getCatCmd())
-
-    def getSizeInfo(self):
-        pass
 
     def start(self):
         self.download_thread.start()
 
     def download(self):
-        for idx, downloader in enumerate(self.downloaders):
-            if self.stopped:
-                break
-            logging.info("Start downloading %s - %s" % (idx + 1, downloader.url))
-            self.currentDownloader = downloader
-            self.currentDownloader.start()
-            while not self.currentDownloader.write_done:
-                time.sleep(0.1)
+        with self.downloadLock:
+            for idx, downloader in enumerate(self.downloaders):
+                if self.stopped:
+                    break
+                logging.info("Start downloading %s - %s" % (idx + 1, downloader.url))
+                self.currentDownloader = downloader
+                self.currentDownloader.start()
+                while not self.currentDownloader.write_done:
+                    time.sleep(0.1)
 
     def stop(self):
         self.stopped = True

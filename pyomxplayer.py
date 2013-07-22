@@ -5,11 +5,9 @@ import signal
 import logging
 
 from threading import Thread
-from config import *
-try:
-    from userPrefs import *
-except:
-    logging.info("Not userPrefs.py found so skip user configuration.")
+from config import get_cfg
+additonal_omxplayer_args = get_cfg('additonal_omxplayer_args')
+zoom = float(get_cfg('zoom'))
 
 
 class OMXPlayer(object):
@@ -27,17 +25,18 @@ class OMXPlayer(object):
 
     def __init__(self, currentVideo, screenWidth=0, screenHeight=0):
         self.currentVideo = currentVideo
-        if self.currentVideo.downloader:
-            self.currentVideo.downloader.start()
-        args = self.getArgs(screenWidth, screenHeight)
+        self.screenWidth = screenWidth
+        self.screenHeight = screenHeight
+        self._process = None
+
+    def play(self):
+        args = self.getArgs(self.screenWidth, self.screenHeight)
         if additonal_omxplayer_args:
             args += " %s" % additonal_omxplayer_args
         cmd = self._LAUNCH_CMD % (self.currentVideo.playUrl, args)
         with open(self._SCRIPT_NAME, 'w') as f:
             if self.currentVideo.download_args:
                 f.write("{\n %s \n} &\n" % self.currentVideo.download_args)
-            if download_to_local:
-                f.write(self.getFileSizeTest())
             f.write('echo . > /tmp/cmd &\n')
             f.write(cmd)
         subprocess.call(["chmod", "+x", self._SCRIPT_NAME])
@@ -45,27 +44,6 @@ class OMXPlayer(object):
         self.position = 0
         self._position_thread = Thread(target=self._get_position)
         self._position_thread.start()
-
-    def getFileSizeTest(self):
-        return """
-file=%s
-count=0
-while sleep 2
-do
-    let "count += 1"
-    if [ $count = 15 ]
-    then
-        break
-    fi
-    if [ -f "$file" ]
-    then
-        size=$(stat -c '%%s' "$file")
-        if [ "$size" -gt %s ]
-        then
-            break
-        fi
-    fi
-done\n""" % (download_file, download_cache_size)
 
     def getArgs(self, screenWidth, screenHeight):
         args = "-o hdmi"
@@ -92,7 +70,7 @@ done\n""" % (download_file, download_cache_size)
         return args
 
     def isalive(self):
-        if self._process.poll() is None:
+        if self._process and self._process.poll() is None:
             return True
         return False
 
@@ -126,12 +104,11 @@ done\n""" % (download_file, download_cache_size)
 
     def stop(self):
         self._send_cmd(self._QUIT_CMD, True)
-        try:
-            if self.currentVideo.downloader:
-                self.currentVideo.downloader.stop()
-            os.killpg(self._process.pid, signal.SIGTERM)
-        except:
-            logging.exception("Got exception")
+        if self._process:
+            try:
+                os.killpg(self._process.pid, signal.SIGTERM)
+            except:
+                logging.exception("Got exception")
         self.currentVideo = None
 
     def set_speed(self):

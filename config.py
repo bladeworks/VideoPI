@@ -1,41 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-# zoom
-zoom = 1.0
+import os
+from configobj import ConfigObj
 
-# 1为普清，2为高清，3为超清, 4为原画
-default_format = 4
+DEFAULT_CFG = os.path.join(os.path.dirname(__file__), "default.cfg")
+USER_CFG = os.path.join(os.path.dirname(__file__), "user.cfg")
 
-# 播放历史记录时往前进多少秒以便回忆
-advanceTime = 5
+defaultCfg = ConfigObj(DEFAULT_CFG)
+userCfg = None
+if os.path.isfile(USER_CFG):
+	userCfg = ConfigObj(USER_CFG)
 
-# 日志存放位置
-logStorage = "/tmp/videopi.log"
-
-# playlist.m3u
-playlistStorage = "/tmp/playlist.m3u"
-
-# additonal omxplayer args for omxplayer
-additonal_omxplayer_args = "--audio_queue=10 --video_queue=40 --audio_fifo=30 --video_fifo=10"
-
-# database
-dbStorage = "media.db"
-
-# if download to local
-download_to_local = False
-
-# download file, only used if download_to_local is True
-download_file = "/download/all.ts"
-
-# download_cache_size, only used if download_to_local is True
-download_cache_size = 5242880
-
-# download program (None or "wget" or "axel" or "private")
-download_program = "wget"
-
-# download thread for axel
-download_threads = 5
-
-# download options for private
-chunk_size = 10000000
+def get_cfg(name):
+	if userCfg and userCfg[name]:
+		return userCfg[name]
+	else:
+		return defaultCfg[name]

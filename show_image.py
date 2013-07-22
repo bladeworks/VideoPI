@@ -6,6 +6,7 @@ import time
 import subprocess
 import logging
 from Queue import Queue
+from contextlib import contextmanager
 
 LOADING = "loading"
 FINISHED = "finished"
@@ -31,6 +32,12 @@ class ImgService:
         self.current = None
         thread = Thread(target=self._show_thread)
         thread.start()
+
+    @contextmanager
+    def show(self, what):
+        self.begin(what)
+        yield
+        self.end()
 
     def begin(self, what):
         try:

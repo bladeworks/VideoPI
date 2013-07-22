@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-from webparser import *
+from webparser import QQWebParser, QQWebParserMP4, WangyiWebParser, YinyuetaiWebParser, YoukuWebParser, YoutubeWebParser, ClubWebParser, UnknownParser, SohuWebParser, KankanWebParser
 
 websites = {
     "qq": {

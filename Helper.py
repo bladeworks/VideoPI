@@ -5,7 +5,11 @@ import os
 from threading import Thread
 from Queue import Queue
 import logging
+import subprocess
+import re
 
+
+screenWidth, screenHeight = 0, 0
 
 def newFifo(filename):
     try:
@@ -19,6 +23,22 @@ def newDir(dirname):
         os.mkdir(dirname)
     except OSError:
         pass
+
+
+def getScreenSize():
+    global screenWidth, screenHeight
+    if screenWidth > 0 and screenHeight > 0:
+        return (screenWidth, screenHeight)
+    try:
+        output = subprocess.check_output(['fbset'])
+        p = re.compile('mode "(?P<width>\d+)x(?P<height>\d+)"')
+        sw, sh = p.search(output).groups()
+        screenWidth = float(sw)
+        screenHeight = float(sh)
+        return (screenWidth, screenHeight)
+    except:
+        logging.exception("Exception catched")
+    return (0, 0)
 
 
 class Worker(Thread):
