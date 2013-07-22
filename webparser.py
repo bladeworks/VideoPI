@@ -646,7 +646,8 @@ class YoukuWebParser(WebParser):
                     (' id="headq"', ''),
                     ('http:\/\/v.youku.com\/v_show\/id_', '\/forward?site=%s&url=http:\/\/v.youku.com\/v_show\/id_' % self.site)]
         skips = ['href="http://static']
-        return self.replaceResponse(s, replaces, skips)
+        s = self.replaceResponse(s, replaces, skips)
+        return self.addJS(s)
 
 
 class WangyiWebParser(WebParser):
