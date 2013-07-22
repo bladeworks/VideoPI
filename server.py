@@ -18,8 +18,12 @@ from webparser import Video
 bottle.debug = True
 
 import logging
-logging.basicConfig(format='%(asctime)s %(threadName)s %(module)s:%(lineno)d %(levelname)s: %(message)s',
-                    filename=get_cfg('logStorage'), level=logging.DEBUG)
+logger = logging.getLogger()
+handler = logging.handlers.RotatingFileHandler(get_cfg('logStorage'), maxBytes=1000000, backupCount=2)
+formatter = logging.Formatter(fmt='%(asctime)s %(threadName)s %(module)s:%(lineno)d %(levelname)s: %(message)s')
+handler.setFormatter(formatter)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 
 def exceptionLogger(type, value, tb):
