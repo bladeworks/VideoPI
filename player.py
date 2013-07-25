@@ -115,7 +115,8 @@ class Player:
                     imgService.end()
                 if self.video.progress % 10 == 0:
                     db_writeHistory(self.video)
-            imgService.begin(FINISHED)
+            if imgService.stop:
+                imgService.begin(FINISHED)
 
     def stop(self):
         logging.info("Stop downloader")

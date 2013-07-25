@@ -169,6 +169,7 @@ class WebParser:
                     return "/forward?site=%s&url=" + encodeURIComponent(u);
                 });
                 %s
+                $("body").css("visibility", "visible");
             }
         </script>
         """ % (self.getSiteUrl(), self.site, self.getJSPerSite())
@@ -297,7 +298,8 @@ class WebParser:
 
     def addJS(self, responseString):
         logging.debug("additionalJS = %s" % self.additionalJS)
-        newRes = responseString.replace("</body>", "%s</body>" % self.additionalJS)
+        newRes = responseString.replace("</body>", "%s</body>" % self.additionalJS).\
+                                replace("<body", "<body style='visibility: hidden'")
         return newRes
 
     def getAvailableFormat(self):
@@ -619,7 +621,7 @@ class YoukuWebParser(WebParser):
         # },
         try:
             sections = d['data'][0]['segs'][self.format2key[self.format]]
-        except KeyError:
+        except:
             responseString = self.fetchWeb(getVideoInfoUrl, via_proxy=True)
             d = json.loads(responseString)
             sections = d['data'][0]['segs'][self.format2key[self.format]]
