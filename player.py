@@ -53,9 +53,9 @@ class Player:
         return (urls, delta)
 
     def getFfmpegCmd(self, ss, inputFile, outputFile):
-        if ss > 0:
-            return 'nice -n 19 ffmpeg -ss %s -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
-                   % (ss, inputFile, outputFile, outputFile)
+        if ss > 30:
+            return 'nice -n 19 ffmpeg -ss %s -i "%s" -ss %s -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
+                   % (ss - 30, inputFile, 30, outputFile, outputFile)
         else:
             return 'nice -n 19 ffmpeg -i "%s" -c copy -bsf:v h264_mp4toannexb -y -f mpegts %s 2>%s.log' \
                    % (inputFile, outputFile, outputFile)
@@ -85,11 +85,14 @@ class Player:
             for idx, catCmd in enumerate(catCmds):
                 pname = os.path.join(ffmpeg_part, str(idx))
                 newFifo(pname)
-                download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(0, "-", pname)))
+                if idx == 0 and delta > 30:
+                    download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(delta "-", pname)))
+                else:
+                    download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(0, "-", pname)))
                 p_list.append(pname)
             ffmpeg_input = " ".join(p_list)
-            download_args = 'cat %s | ffmpeg -f mpegts -i - -ss %s -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
-                             % (ffmpeg_input, delta, self.video.playUrl)
+            download_args = 'cat %s | ffmpeg -f mpegts -i - -c copy -y -f mpegts %s 2> /tmp/merge.log &\n' \
+                             % (ffmpeg_input, self.video.playUrl)
             download_args += " && ".join(download_lines)
             self.video.download_args = download_args
 
