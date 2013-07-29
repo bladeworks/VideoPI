@@ -86,7 +86,7 @@ class Player:
                 pname = os.path.join(ffmpeg_part, str(idx))
                 newFifo(pname)
                 if idx == 0 and delta > 30:
-                    download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(delta "-", pname)))
+                    download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(delta, "-", pname)))
                 else:
                     download_lines.append("{\n%s | %s\n}" % (catCmd, self.getFfmpegCmd(0, "-", pname)))
                 p_list.append(pname)
