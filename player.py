@@ -111,12 +111,14 @@ class Player:
         with lock:
             logging.info("Got lock and play now")
             self.player.play()
+            interval = 0
             while self.player.isalive():
                 time.sleep(1)
+                interval += 1
                 self.video.progress = self.from_position + self.getPosition()
                 if not imgService.stop and self.video.progress > 0:
                     imgService.end()
-                if self.video.progress % 10 == 0:
+                if interval % 10 == 0:
                     db_writeHistory(self.video)
             if imgService.stop:
                 imgService.begin(FINISHED)
