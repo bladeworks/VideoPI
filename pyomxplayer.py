@@ -14,7 +14,7 @@ class OMXPlayer(object):
 
     _STATUS_REXP = re.compile(r"[MV]\s*:\s*(?P<position>[\d]+).*")
 
-    _LAUNCH_CMD = 'nice -n -1 /usr/bin/omxplayer.bin -s "%s" %s < /tmp/cmd \n'
+    _LAUNCH_CMD = 'nice -n -1 /usr/bin/omxplayer -s "%s" %s < /tmp/cmd \n'
     _PAUSE_CMD = 'p'
     _TOGGLE_SUB_CMD = 's'
     _QUIT_CMD = 'q'
