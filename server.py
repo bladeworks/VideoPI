@@ -99,7 +99,7 @@ def history():
     for video in videos:
         responseString += """
                         <li>
-                            <a href="/play?id=%s" class="ui-link-inherit" data-ajax="false">
+                            <a href="/play?id=%s&start=-1" class="ui-link-inherit" data-ajax="false">
                                 <h3>%s(%s)</h3>
                                 <p>总共%s(上次播放到%s)</p>
                             </a>
