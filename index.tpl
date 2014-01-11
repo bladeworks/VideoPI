@@ -109,9 +109,15 @@
 		  			%for site, data in iter(sorted(websites.iteritems())):
 			  			%if 'url' in data:
 			  			<li>
-				  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
-				  				{{data['title']}}
-				  			</a>	
+			  				%if 'home' in data:
+					  			<a href="/forward?url={{data['home']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
+					  				{{data['title']}}
+					  			</a>	
+				  			%else:
+					  			<a href="/forward?url={{data['url']}}&site={{site}}" data-ajax="false" data-theme="c" data-icon="custom" id="{{site}}"><img src="{{data['icon']}}" class="ui-li-icon"/>
+					  				{{data['title']}}
+
+				  			%end
 				  			<a href="#{{site}}info" data-rel="popup" data-position-to="window" data-transition="pop">Details</a>
 				  		</li>
 				  		<div data-role="popup" id="{{site}}info" class="ui-content" data-theme="e">

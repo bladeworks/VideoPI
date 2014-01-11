@@ -6,6 +6,7 @@ websites = {
     "qq": {
         "title": "腾讯视频(flv)",
         "url": "http://v.qq.com",
+        "home": "http://v.qq.com/rank/index/-1_-1_-1.html",
         "parser": QQWebParser,
         "icon": "/static/img/favicon/qq.ico",
         "info": "flv格式，不分段，但不能选择清晰度。",
@@ -14,6 +15,7 @@ websites = {
     "qqmp4": {
         "title": "腾讯视频(分段)",
         "url": "http://v.qq.com",
+        "home": "http://v.qq.com/rank/index/-1_-1_-1.html",
         "parser": QQWebParserMP4,
         "icon": "/static/img/favicon/qq.ico",
         "info": "分段，可选择清晰度。"
@@ -21,6 +23,7 @@ websites = {
     "youku": {
         "title": "优酷视频(推荐)",
         "url": "http://www.youku.com",
+        "home": "http://www.youku.com/v/",
         "parser": YoukuWebParser,
         "icon": "/static/img/favicon/youku.ico",
         "info": "不分段，可选择清晰度。",
@@ -59,6 +62,7 @@ websites = {
     "sohu": {
         "title": "搜狐视频",
         "url": "http://tv.sohu.com",
+        "home": "http://so.tv.sohu.com/list_p11_p2_p3_p4-1_p5_p6_p70_p80_p9_2d2_p101_p11.html",
         "parser": SohuWebParser,
         "icon": "/static/img/favicon/sohu.ico",
         "info": "",
